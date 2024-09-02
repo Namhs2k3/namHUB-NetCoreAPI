@@ -1,0 +1,6 @@
+@namHub_FastFood_HostAddress = http://localhost:5252
+
+GET {{namHub_FastFood_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

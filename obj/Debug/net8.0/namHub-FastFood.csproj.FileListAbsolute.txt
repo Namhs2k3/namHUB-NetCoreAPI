@@ -136,3 +136,5 @@ C:\Users\pnn10\source\repos\Web_Net_Core\namHUB\namHub-FastFood\obj\Debug\net8.0
 C:\Users\pnn10\source\repos\Web_Net_Core\namHUB\namHub-FastFood\obj\Debug\net8.0\namHub-FastFood.pdb
 C:\Users\pnn10\source\repos\Web_Net_Core\namHUB\namHub-FastFood\obj\Debug\net8.0\namHub-FastFood.genruntimeconfig.cache
 C:\Users\pnn10\source\repos\Web_Net_Core\namHUB\namHub-FastFood\obj\Debug\net8.0\ref\namHub-FastFood.dll
+C:\Users\pnn10\source\repos\Web_Net_Core\namHUB\namHub-FastFood\obj\Debug\net8.0\namHub-FastFood.sourcelink.json
+C:\Users\pnn10\source\repos\Web_Net_Core\namHUB\namHub-FastFood\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll

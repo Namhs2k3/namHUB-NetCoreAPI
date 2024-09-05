@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using namHub_FastFood.Models;
 using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 using System.Text;
 
 namespace namHub_FastFood.Controller
@@ -116,13 +117,13 @@ namespace namHub_FastFood.Controller
             await _context.SaveChangesAsync();
 
             // Gửi email với mã xác thực
-            var resetLink = Url.Action("ResetPassword", "User", new { token = resetToken }, Request.Scheme);
-            await _emailService.SendEmailAsync(request.Email, "Đặt lại mật khẩu", $"Nhấp vào liên kết để đặt lại mật khẩu của bạn: {resetLink}");
+            //var resetLink = Url.Action("ResetPassword", "User", new { token = resetToken }, Request.Scheme); đoạn mã này chỉ phù hợp nếu có làm View của Action "ResetPassWord"
+            await _emailService.SendEmailAsync(request.Email, "Đặt lại mật khẩu", $"RESET PASSWORD CODE của bạn là : {resetToken}!\n Vui lòng không chia sẻ cho bất kì ai để đảm bảo tài khoản của bạn được an toàn! \n Love You Pặc Pặc!!! <3");
 
-            return Ok("Liên kết đặt lại mật khẩu đã được gửi đến email của bạn.");
+            return Ok("Mã đặt lại mật khẩu đã được gửi đến email của bạn.");
         }
 
-        // Có thể ko cần
+        // Có thể ko cần vì làm FE React riêng 
         [HttpGet("reset-password")]
         public IActionResult ResetPassword(string token)
         {
@@ -152,8 +153,10 @@ namespace namHub_FastFood.Controller
             var passwordHash = ComputeHash(request.NewPassword, salt);
 
             // Cập nhật mật khẩu người dùng
+            // Ko cần dùng đến method Update mà chỉ cần thay đổi bằng giá trị mới và lưu vào csdl thôi
             user.PasswordHash = Convert.ToBase64String(passwordHash);
             user.Salt = salt;
+            // Lưu MK rồi mới xóa mã xác thực để tránh rủi ro (ko thay đổi đc MK mà đã xóa mã)
             await _context.SaveChangesAsync();
 
             // Xóa mã xác thực sau khi đặt lại mật khẩu thành công
@@ -183,6 +186,28 @@ namespace namHub_FastFood.Controller
                 return hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
             }
         }
+
+
+        // Logout
+        [HttpPost("log-out")]
+        public async Task<IActionResult> Logout()
+        {
+            // Lấy thông tin người dùng từ HTTPcontext
+            // User ở Claim Principal chứ ko phải ở db
+            // còn user_id là claim của JWT được Nam tạo trong phương thức Login
+            var userId = User.FindFirst("user_id")?.Value;
+            Console.WriteLine($"Đây là User Id {userId}");
+            if (userId == null)
+            {
+                return BadRequest("Người dùng chưa đăng nhập!");
+            }
+
+            // Xóa cookie
+            Response.Cookies.Delete("jwt");
+
+            return Ok("Đăng xuất thành công!");
+        }
+
     }
     public class UserRegisterRequest
     {

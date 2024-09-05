@@ -16,6 +16,7 @@ public class EmailService : IEmailService
         _configuration = configuration;
     }
 
+    //Phương Thức SendEmailAsync này là của Nam
     public async Task SendEmailAsync(string to, string subject, string message)
     {
         var smtpClient = new SmtpClient(_configuration["Smtp:Server"])
@@ -34,7 +35,7 @@ public class EmailService : IEmailService
         };
 
         mailMessage.To.Add(to);
-
+        //Phương Thức SendEmailAsync này là của đối tượng SmtpClient
         await smtpClient.SendMailAsync(mailMessage);
     }
 }

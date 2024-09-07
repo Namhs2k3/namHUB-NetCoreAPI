@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using namHub_FastFood.Models;
+using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
@@ -38,13 +39,25 @@ namespace namHub_FastFood.Controller
                 return Unauthorized("Email not verified. Please check your email.");
             }
 
-            var claims = new[]
+            // Lấy roles của user từ Bảng UserRoles
+            var roles = await _context.UserRoles
+                .Where(ur => ur.UserId == user.UserId)
+                .Select(ur => ur.Role.RoleName)
+                .ToListAsync();
+
+            var claims = new List<Claim>()
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Username),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(ClaimTypes.Name, user.Username),
                 new Claim("user_id", user.UserId.ToString())
             };
+
+            // Thêm các role vào claims
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

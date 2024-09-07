@@ -55,6 +55,16 @@ namespace namHub_FastFood.Controller
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
+
+            // Tìm role mặc định USER
+            var userRole = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == "USER");
+            if (userRole != null)
+            {
+                // Gán role "USER" cho người dùng
+                _context.UserRoles.Add(new UserRole { UserId = user.UserId, RoleId = userRole.RoleId });
+                await _context.SaveChangesAsync();
+            }
+
             // Tạo liên kết xác thực email
             var verificationLink = Url.Action(
                 "VerifyEmail",
@@ -118,7 +128,7 @@ namespace namHub_FastFood.Controller
 
             // Gửi email với mã xác thực
             //var resetLink = Url.Action("ResetPassword", "User", new { token = resetToken }, Request.Scheme); đoạn mã này chỉ phù hợp nếu có làm View của Action "ResetPassWord"
-            await _emailService.SendEmailAsync(request.Email, "Đặt lại mật khẩu", $"RESET PASSWORD CODE của bạn là : {resetToken}!\n Vui lòng không chia sẻ cho bất kì ai để đảm bảo tài khoản của bạn được an toàn! \n Love You Pặc Pặc!!! <3");
+            await _emailService.SendEmailAsync(request.Email, "Đặt lại mật khẩu", $"Token để đặt lại mật khẩu của bạn là : {resetToken}!\n Vui lòng không chia sẻ cho bất kì ai để đảm bảo tài khoản của bạn được an toàn! \n Love You Pặc Pặc!!! <3");
 
             return Ok("Mã đặt lại mật khẩu đã được gửi đến email của bạn.");
         }

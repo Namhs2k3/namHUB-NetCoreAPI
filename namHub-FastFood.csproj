@@ -19,4 +19,10 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Controller\DELIVER\" />
+    <Folder Include="Controller\EMPLOYEE\" />
+    <Folder Include="Controller\USER\" />
+  </ItemGroup>
+
 </Project>

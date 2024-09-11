@@ -22,6 +22,9 @@ public partial class Category
     [Column("parent_category_id")]
     public int? ParentCategoryId { get; set; }
 
+    [Column("imgURL")]
+    public string? imgURL { get; set; } // Thêm cột imgURL
+
     [Column("created_at", TypeName = "datetime")]
     public DateTime? CreatedAt { get; set; }
 

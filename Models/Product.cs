@@ -28,6 +28,12 @@ public partial class Product
     [Column("category_id")]
     public int? CategoryId { get; set; }
 
+    [Column("is_hidden")]
+    public bool? IsHidden { get; set; }
+
+    [Column("is_popular")]
+    public bool? IsPopular { get; set; }
+
     [Column("image_url")]
     [StringLength(255)]
     public string? ImageUrl { get; set; }

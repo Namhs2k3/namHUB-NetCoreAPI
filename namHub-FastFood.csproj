@@ -20,9 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controller\DELIVER\" />
-    <Folder Include="Controller\EMPLOYEE\" />
-    <Folder Include="Controller\USER\" />
+    <Folder Include="wwwroot\images\" />
   </ItemGroup>
 
 </Project>

@@ -142,6 +142,13 @@ public partial class namHUBDbContext : DbContext
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(getdate())");
+
+            // Cấu hình mối quan hệ một-một với bảng User
+            entity.HasOne(d => d.User)
+                .WithOne(u => u.Customer)  // Đảm bảo User có thuộc tính Customer
+                .HasForeignKey<Customer>(d => d.UserId)
+                .HasConstraintName("FK_Customer_User") // Tên khóa ngoại
+                .OnDelete(DeleteBehavior.Cascade); // Xác định hành động khi xóa người dùng
         });
 
         modelBuilder.Entity<DeliveryAssignment>(entity =>

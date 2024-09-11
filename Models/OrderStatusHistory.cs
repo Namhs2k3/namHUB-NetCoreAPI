@@ -23,6 +23,10 @@ public partial class OrderStatusHistory
     [Column("status_date", TypeName = "datetime")]
     public DateTime? StatusDate { get; set; }
 
+    [Column("updated_by")]
+    [StringLength(100)]
+    public string? UpdatedBy { get; set; } // Thêm trường UpdatedBy
+
     [ForeignKey("OrderId")]
     [InverseProperty("OrderStatusHistories")]
     public virtual Order? Order { get; set; }

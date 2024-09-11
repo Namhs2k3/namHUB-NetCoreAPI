@@ -63,4 +63,7 @@ public partial class User
 
     [InverseProperty("User")]
     public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+
+    // Liên kết với Customer
+    public virtual Customer? Customer { get; set; }
 }

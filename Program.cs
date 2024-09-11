@@ -99,6 +99,8 @@ var app = builder.Build();
 // Sử dụng chính sách CORS
 app.UseCors("AllowAllOrigins");
 
+app.UseStaticFiles(); // Enable serving static files
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

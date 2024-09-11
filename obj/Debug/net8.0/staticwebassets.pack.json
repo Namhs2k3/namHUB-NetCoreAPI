@@ -1,0 +1,49 @@
+{
+  "Files": [
+    {
+      "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\bg3.jpg",
+      "PackagePath": "staticwebassets\\images\\bg3.jpg"
+    },
+    {
+      "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\bg5_LE_auto_custom.jpg",
+      "PackagePath": "staticwebassets\\images\\bg5_LE_auto_custom.jpg"
+    },
+    {
+      "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\copy1.jpg",
+      "PackagePath": "staticwebassets\\images\\copy1.jpg"
+    },
+    {
+      "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\dotnet_bot2.png",
+      "PackagePath": "staticwebassets\\images\\dotnet_bot2.png"
+    },
+    {
+      "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\logoUEF.png",
+      "PackagePath": "staticwebassets\\images\\logoUEF.png"
+    },
+    {
+      "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\valorant-clove-3840x2160-16044.jpeg",
+      "PackagePath": "staticwebassets\\images\\valorant-clove-3840x2160-16044.jpeg"
+    },
+    {
+      "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\z4717753171385_a89926999ae292fbef71c5f2199c5919.jpg",
+      "PackagePath": "staticwebassets\\images\\z4717753171385_a89926999ae292fbef71c5f2199c5919.jpg"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.namHub-FastFood.props",
+      "PackagePath": "build\\namHub-FastFood.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.namHub-FastFood.props",
+      "PackagePath": "buildMultiTargeting\\namHub-FastFood.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.namHub-FastFood.props",
+      "PackagePath": "buildTransitive\\namHub-FastFood.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.namHub-FastFood.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

@@ -22,14 +22,15 @@ public partial class Category
     [Column("parent_category_id")]
     public int? ParentCategoryId { get; set; }
 
-    [Column("imgURL")]
-    public string? imgURL { get; set; } // Thêm cột imgURL
-
     [Column("created_at", TypeName = "datetime")]
     public DateTime? CreatedAt { get; set; }
 
     [Column("updated_at", TypeName = "datetime")]
     public DateTime? UpdatedAt { get; set; }
+
+    [Column("imgURL")]
+    [StringLength(255)]
+    public string? ImgUrl { get; set; }
 
     [InverseProperty("ParentCategory")]
     public virtual ICollection<Category> InverseParentCategory { get; set; } = new List<Category>();

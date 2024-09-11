@@ -58,8 +58,7 @@ public partial class namHUBDbContext : DbContext
     public virtual DbSet<UserRole> UserRoles { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Data Source=NAMHANDSOME\\NGOCNAM1010;Initial Catalog=namHUB-FastFood;User ID=sa;Password=nam123;Trust Server Certificate=True");
+        => optionsBuilder.UseSqlServer("Name=DefaultConnection");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -143,12 +142,9 @@ public partial class namHUBDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(getdate())");
 
-            // Cấu hình mối quan hệ một-một với bảng User
-            entity.HasOne(d => d.User)
-                .WithOne(u => u.Customer)  // Đảm bảo User có thuộc tính Customer
-                .HasForeignKey<Customer>(d => d.UserId)
-                .HasConstraintName("FK_Customer_User") // Tên khóa ngoại
-                .OnDelete(DeleteBehavior.Cascade); // Xác định hành động khi xóa người dùng
+            entity.HasOne(d => d.User).WithMany(p => p.Customers)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Customer_User");
         });
 
         modelBuilder.Entity<DeliveryAssignment>(entity =>
@@ -253,6 +249,8 @@ public partial class namHUBDbContext : DbContext
             entity.HasKey(e => e.ProductId).HasName("PK__Products__47027DF59A5D5041");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.IsHidden).HasDefaultValue(false);
+            entity.Property(e => e.IsPopular).HasDefaultValue(false);
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(getdate())");
 
             entity.HasOne(d => d.Category).WithMany(p => p.Products).HasConstraintName("FK__Products__catego__6C190EBB");

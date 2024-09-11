@@ -42,7 +42,7 @@ namespace namHub_FastFood.Controller.ADMIN
                 {
                     CategoryID = c.CategoryId,
                     CategoryName = c.CategoryName,
-                    ImgURL = $"{baseUrl}{c.imgURL}",
+                    ImgURL = $"{baseUrl}{c.ImgUrl}",
                     Description = c.Description,
                 })
                 .ToListAsync();
@@ -80,7 +80,7 @@ namespace namHub_FastFood.Controller.ADMIN
             {
                 CategoryName = myCategory.CategoryName,
                 Description = myCategory.CategoryDescription,
-                imgURL = $"/images/{fileName}"
+                ImgUrl = $"/images/{fileName}"
             };
 
             // Thêm vào cơ sở dữ liệu
@@ -126,7 +126,7 @@ namespace namHub_FastFood.Controller.ADMIN
             // Cập nhật thuộc tính của danh mục
             category.CategoryName = myCategory.CategoryName;
             category.Description = myCategory.CategoryDescription;
-            category.imgURL = $"/images/{fileName}";
+            category.ImgUrl = $"/images/{fileName}";
             category.UpdatedAt = DateTime.Now; // Cập nhật thời gian sửa đổi
 
             // Lưu thay đổi vào cơ sở dữ liệu

@@ -59,11 +59,11 @@ public partial class User
     public virtual ICollection<Cart> Carts { get; set; } = new List<Cart>();
 
     [InverseProperty("User")]
+    public virtual ICollection<Customer> Customers { get; set; } = new List<Customer>();
+
+    [InverseProperty("User")]
     public virtual ICollection<LoginHistory> LoginHistories { get; set; } = new List<LoginHistory>();
 
     [InverseProperty("User")]
     public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
-
-    // Liên kết với Customer
-    public virtual Customer? Customer { get; set; }
 }

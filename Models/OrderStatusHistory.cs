@@ -25,7 +25,7 @@ public partial class OrderStatusHistory
 
     [Column("updated_by")]
     [StringLength(100)]
-    public string? UpdatedBy { get; set; } // Thêm trường UpdatedBy
+    public string? UpdatedBy { get; set; }
 
     [ForeignKey("OrderId")]
     [InverseProperty("OrderStatusHistories")]

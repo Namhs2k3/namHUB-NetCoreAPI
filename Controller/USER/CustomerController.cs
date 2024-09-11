@@ -39,7 +39,7 @@ namespace namHub_FastFood.Controller.USER
                 {
                     CategoryID = c.CategoryId,
                     CategoryName = c.CategoryName,
-                    ImgURL = $"{baseUrl}{c.imgURL}",
+                    ImgURL = $"{baseUrl}{c.ImgUrl}",
                     Description = c.Description,
                 })
                 .ToListAsync();
@@ -89,7 +89,7 @@ namespace namHub_FastFood.Controller.USER
                 customer?.Phone,
                 customer?.Email,
                 customer?.CreatedAt,
-                customer?.UserImageURL,
+                customer?.UserImage,
                 DefaultAddress = defaultAddress != null
                     ? $"{defaultAddress.AddressLine1}, {defaultAddress.City}"
                     : "Không có địa chỉ mặc định",
@@ -100,7 +100,7 @@ namespace namHub_FastFood.Controller.USER
         }
 
         [Authorize(Roles = "ADMIN,EMPLOYEE,DELIVER,USER")]
-        [HttpGet("get-customer-addresses")]
+        [HttpGet("get-addresses")]
         public async Task<IActionResult> GetCusAddr()
         {
             // Lấy thông tin customer id từ claim của token
@@ -284,7 +284,7 @@ namespace namHub_FastFood.Controller.USER
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 UserId = userId.Value,
-                UserImageURL = $"/image/{fileName}",
+                UserImage = $"/image/{fileName}",
             };
 
             _context.Customers.Add(newCustomer);
@@ -348,7 +348,7 @@ namespace namHub_FastFood.Controller.USER
                     {
                         await model.UserImageURL.CopyToAsync(stream);
                     }
-                    customer.UserImageURL = $"/image/{fileName}";
+                    customer.UserImage = $"/image/{fileName}";
                 }
                 catch (Exception ex)
                 {

@@ -11,7 +11,7 @@ using System.Text;
 
 namespace namHub_FastFood.Controller
 {
-    [Route("api/[controller]")]
+    [Route("api/user-login")]
     [ApiController]
     public class LoginController : ControllerBase
     {

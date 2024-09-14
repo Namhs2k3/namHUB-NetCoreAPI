@@ -9,7 +9,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options => // để chuyển đổi json ko bị lỗi vòng tuần hoàn vô hạn
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+    });
 // Thêm dịch vụ CORS vào container DI
 builder.Services.AddCors(options =>
 {

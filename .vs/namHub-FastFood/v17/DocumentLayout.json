@@ -5,14 +5,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{A9FA813A-8651-49BF-9264-2E14D2D055F6}|namHub-FastFood.csproj|c:\\users\\pnn10\\source\\repos\\web_net_core\\namhub\\namhub-fastfood\\controller\\user\\customercontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{A9FA813A-8651-49BF-9264-2E14D2D055F6}|namHub-FastFood.csproj|solutionrelative:controller\\user\\customercontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A9FA813A-8651-49BF-9264-2E14D2D055F6}|namHub-FastFood.csproj|c:\\users\\pnn10\\source\\repos\\web_net_core\\namhub\\namhub-fastfood\\controller\\admin\\customersmanagecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A9FA813A-8651-49BF-9264-2E14D2D055F6}|namHub-FastFood.csproj|solutionrelative:controller\\admin\\customersmanagecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A9FA813A-8651-49BF-9264-2E14D2D055F6}|namHub-FastFood.csproj|c:\\users\\pnn10\\source\\repos\\web_net_core\\namhub\\namhub-fastfood\\controller\\admin\\usersmanagecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A9FA813A-8651-49BF-9264-2E14D2D055F6}|namHub-FastFood.csproj|solutionrelative:controller\\admin\\usersmanagecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -32,35 +24,9 @@
               "RelativeDocumentMoniker": "Controller\\USER\\CustomerController.cs",
               "ToolTip": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\Controller\\USER\\CustomerController.cs",
               "RelativeToolTip": "Controller\\USER\\CustomerController.cs",
-              "ViewState": "AQIAAEEAAAAAAAAAAAAAwEYAAAAQAAAA",
+              "ViewState": "AQIAAOwAAAAAAAAAAAAAwP0AAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2024-09-10T08:14:20.164Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "UsersManageController.cs",
-              "DocumentMoniker": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\Controller\\ADMIN\\UsersManageController.cs",
-              "RelativeDocumentMoniker": "Controller\\ADMIN\\UsersManageController.cs",
-              "ToolTip": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\Controller\\ADMIN\\UsersManageController.cs",
-              "RelativeToolTip": "Controller\\ADMIN\\UsersManageController.cs",
-              "ViewState": "AQIAAC8AAAAAAAAAAAAAwCwAAABjAAAA",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-09-10T06:34:38.706Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "CustomersManageController.cs",
-              "DocumentMoniker": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\Controller\\ADMIN\\CustomersManageController.cs",
-              "RelativeDocumentMoniker": "Controller\\ADMIN\\CustomersManageController.cs",
-              "ToolTip": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\Controller\\ADMIN\\CustomersManageController.cs",
-              "RelativeToolTip": "Controller\\ADMIN\\CustomersManageController.cs",
-              "ViewState": "AQIAAAAAAAAAAAAAAIBJwBQAAAAJAAAA",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-09-10T06:29:23.407Z",
               "EditorCaption": ""
             }
           ]

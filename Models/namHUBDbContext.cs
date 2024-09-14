@@ -33,6 +33,8 @@ public partial class namHUBDbContext : DbContext
 
     public virtual DbSet<DeliveryPersonnel> DeliveryPersonnel { get; set; }
 
+    public virtual DbSet<DiscountCode> DiscountCodes { get; set; }
+
     public virtual DbSet<Employee> Employees { get; set; }
 
     public virtual DbSet<LoginHistory> LoginHistories { get; set; }
@@ -52,6 +54,8 @@ public partial class namHUBDbContext : DbContext
     public virtual DbSet<Role> Roles { get; set; }
 
     public virtual DbSet<ShippingDetail> ShippingDetails { get; set; }
+
+    public virtual DbSet<UsedDiscount> UsedDiscounts { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
 
@@ -142,9 +146,7 @@ public partial class namHUBDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(getdate())");
 
-            entity.HasOne(d => d.User).WithMany(p => p.Customers)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Customer_User");
+            entity.HasOne(d => d.User).WithMany(p => p.Customers).HasConstraintName("FK_Customers_Users");
         });
 
         modelBuilder.Entity<DeliveryAssignment>(entity =>
@@ -168,6 +170,16 @@ public partial class namHUBDbContext : DbContext
             entity.HasKey(e => e.DeliveryPersonId).HasName("PK__Delivery__F95D33538DE0B1B0");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(getdate())");
+        });
+
+        modelBuilder.Entity<DiscountCode>(entity =>
+        {
+            entity.HasKey(e => e.DiscountId).HasName("PK__Discount__E43F6D96F3EE7812");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.CurrentUsageCount).HasDefaultValue(0);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(getdate())");
         });
 
@@ -248,6 +260,12 @@ public partial class namHUBDbContext : DbContext
         {
             entity.HasKey(e => e.ProductId).HasName("PK__Products__47027DF59A5D5041");
 
+            entity.ToTable(tb =>
+                {
+                    tb.HasTrigger("SetDefaultDiscountedPrice");
+                    tb.HasTrigger("UpdateDiscountPercentage");
+                });
+
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
             entity.Property(e => e.IsHidden).HasDefaultValue(false);
             entity.Property(e => e.IsPopular).HasDefaultValue(false);
@@ -268,6 +286,19 @@ public partial class namHUBDbContext : DbContext
             entity.HasOne(d => d.Order).WithMany(p => p.ShippingDetails)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK__ShippingD__order__17036CC0");
+        });
+
+        modelBuilder.Entity<UsedDiscount>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__UsedDisc__3214EC07FA0AB008");
+
+            entity.HasOne(d => d.Customer).WithMany(p => p.UsedDiscounts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__UsedDisco__Custo__0697FACD");
+
+            entity.HasOne(d => d.Discount).WithMany(p => p.UsedDiscounts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__UsedDisco__Disco__05A3D694");
         });
 
         modelBuilder.Entity<User>(entity =>

@@ -45,6 +45,8 @@ namespace namHub_FastFood.Controller.ADMIN
                     ImgURL = $"{baseUrl}{p.ImageUrl}", // Đảm bảo trả về URL hình ảnh
                     p.IsHidden,
                     p.IsPopular,
+                    p.DiscountedPrice,
+                    p.DiscountPercentage
                 })
                 .ToListAsync();
 
@@ -75,6 +77,17 @@ namespace namHub_FastFood.Controller.ADMIN
                 await myProduct.imgFile.CopyToAsync(stream);
             }
 
+            // Kiểm tra nếu giá sau giảm không được lớn hơn giá gốc
+            if (myProduct.DiscountedPrice > myProduct.Price)
+            {
+                return BadRequest("Discounted price cannot be greater than the original price.");
+            }
+
+            // Tính phần trăm giảm giá nếu giá gốc và giá giảm khác nhau
+            var discountPercentage = myProduct.DiscountedPrice < myProduct.Price
+                ? ((myProduct.Price - myProduct.DiscountedPrice) / myProduct.Price) * 100
+                : 0;
+
             var product = new Product()
             {
                 ProductName = myProduct.ProductName,
@@ -85,11 +98,17 @@ namespace namHub_FastFood.Controller.ADMIN
                 CategoryId = myProduct.CategoryId,
                 ImageUrl = $"/images/{fileName}",
                 IsPopular = myProduct.IsPopular,
+                DiscountedPrice = myProduct.DiscountedPrice ?? myProduct.Price,
+                DiscountPercentage = discountPercentage
             };
+
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
+
             return Ok(product);
         }
+
+
         // Sửa sản phẩm
         [HttpPut("update-product/{id}")]
         public async Task<IActionResult> UpdateProduct(int id, [FromForm] MyProduct product)
@@ -103,35 +122,48 @@ namespace namHub_FastFood.Controller.ADMIN
                 return BadRequest(ModelState);
             }
 
-            // Kiểm tra xem có file ảnh hay không
-            if (product.imgFile == null || product.imgFile.Length == 0)
+            // Kiểm tra nếu DiscountedPrice lớn hơn Price
+            if (product.DiscountedPrice.HasValue && product.DiscountedPrice > product.Price)
             {
-                return BadRequest("No image uploaded.");
+                return BadRequest("DiscountedPrice cannot be greater than Price.");
             }
 
-            // Lưu file ảnh
-            var fileName = Path.GetFileName(product.imgFile.FileName);
-            var filePath = Path.Combine(_uploadFolder, fileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
+            // Kiểm tra xem có file ảnh mới hay không
+            if (product.imgFile != null && product.imgFile.Length > 0)
             {
-                await product.imgFile.CopyToAsync(stream);
+                // Lưu file ảnh
+                var fileName = Path.GetFileName(product.imgFile.FileName);
+                var filePath = Path.Combine(_uploadFolder, fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await product.imgFile.CopyToAsync(stream);
+                }
+
+                // Cập nhật ImageUrl nếu có ảnh mới
+                existingProduct.ImageUrl = $"/images/{fileName}";
             }
 
+            // Cập nhật các thuộc tính khác
             existingProduct.ProductName = product.ProductName;
             existingProduct.Description = product.Description;
             existingProduct.Price = product.Price;
             existingProduct.StockQuantity = product.StockQuantity;
             existingProduct.CategoryId = product.CategoryId;
-            existingProduct.ImageUrl = $"/images/{fileName}";
             existingProduct.UpdatedAt = DateTime.Now;
             existingProduct.IsPopular = product.IsPopular;
             existingProduct.IsHidden = product.IsHidden;
 
+            // Cập nhật giá giảm và phần trăm giảm
+            existingProduct.DiscountedPrice = product.DiscountedPrice ?? product.Price;
+            existingProduct.DiscountPercentage = ((product.Price - existingProduct.DiscountedPrice) / product.Price) * 100;
+
             await _context.SaveChangesAsync();
             return Ok(existingProduct);
         }
+
     }
+
     public class MyProduct
     {
         public string ProductName { get; set; } = null!;
@@ -142,6 +174,7 @@ namespace namHub_FastFood.Controller.ADMIN
         public int StockQuantity { get; set; }
         public int CategoryId { get; set; }
         public IFormFile? imgFile { get; set; }
+        public decimal? DiscountedPrice { get; set; }
     }
 
 }

@@ -44,6 +44,12 @@ public partial class Product
     [Column("is_popular")]
     public bool? IsPopular { get; set; }
 
+    [Column(TypeName = "decimal(18, 2)")]
+    public decimal? DiscountedPrice { get; set; }
+
+    [Column(TypeName = "decimal(5, 2)")]
+    public decimal? DiscountPercentage { get; set; }
+
     [InverseProperty("Product")]
     public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
 

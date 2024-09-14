@@ -43,6 +43,9 @@ public partial class Customer
     [InverseProperty("Customer")]
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
+    [InverseProperty("Customer")]
+    public virtual ICollection<UsedDiscount> UsedDiscounts { get; set; } = new List<UsedDiscount>();
+
     [ForeignKey("UserId")]
     [InverseProperty("Customers")]
     public virtual User User { get; set; } = null!;

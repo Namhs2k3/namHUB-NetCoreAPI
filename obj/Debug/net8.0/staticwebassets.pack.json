@@ -17,6 +17,14 @@
       "PackagePath": "staticwebassets\\images\\dotnet_bot2.png"
     },
     {
+      "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\favicon_io.zip",
+      "PackagePath": "staticwebassets\\images\\favicon_io.zip"
+    },
+    {
+      "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\istockphoto-1280319517-32px.jpg",
+      "PackagePath": "staticwebassets\\images\\istockphoto-1280319517-32px.jpg"
+    },
+    {
       "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\logoUEF.png",
       "PackagePath": "staticwebassets\\images\\logoUEF.png"
     },

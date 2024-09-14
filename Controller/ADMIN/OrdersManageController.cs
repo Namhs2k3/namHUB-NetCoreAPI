@@ -38,8 +38,12 @@ namespace namHub_FastFood.Controller.ADMIN
                     o.OrderDate,
                     o.Status,
                     o.TotalAmount,
+                    o.DiscountCodeUsed,
+                    o.DiscountAmount,
+                    o.TotalAfterDiscount,
                     // Chỉ cần gọi FirstOrDefault() cho Payments mà ko cần xét orderID vì orderID luôn khớp
-                    PaymentMethod = o.Payments.FirstOrDefault().PaymentMethod
+                    PaymentMethod = o.Payments.FirstOrDefault().PaymentMethod,
+                    PaymentStatus = o.Payments.FirstOrDefault().PaymentDate != null ? "Đã Thanh Toán" : "Chưa Thanh Toán",
                 })
                 .OrderByDescending(o => o.OrderDate) // Sắp xếp theo ngày đặt hàng
                 .ToListAsync();
@@ -76,7 +80,7 @@ namespace namHub_FastFood.Controller.ADMIN
             return Ok(orderHistory);
         }
         [Authorize(Roles = "ADMIN,EMPLOYEE,DELIVER")]
-        [HttpPost("add-new-state-for-order/{orderId}")]
+        [HttpPost("add-new-state-for-order-history/{orderId}")]
         public async Task<IActionResult> AddNewState(int orderId, [FromBody]string status)
         {
             // Kiểm tra nếu orderId có tồn tại trong Orders

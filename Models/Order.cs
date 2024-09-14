@@ -25,6 +25,15 @@ public partial class Order
     [Column("total_amount", TypeName = "decimal(18, 2)")]
     public decimal? TotalAmount { get; set; }
 
+    [StringLength(100)]
+    public string? DiscountCodeUsed { get; set; }
+
+    [Column(TypeName = "decimal(18, 2)")]
+    public decimal? DiscountAmount { get; set; }
+
+    [Column(TypeName = "decimal(18, 2)")]
+    public decimal? TotalAfterDiscount { get; set; }
+
     [ForeignKey("CustomerId")]
     [InverseProperty("Orders")]
     public virtual Customer? Customer { get; set; }

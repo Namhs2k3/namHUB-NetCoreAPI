@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using namHub_FastFood.Controller.ADMIN;
 using namHub_FastFood.Models;
 using System.Text.RegularExpressions;
 
@@ -45,101 +46,6 @@ namespace namHub_FastFood.Controller.USER
                 .ToListAsync();
 
             return Ok(categories);
-        }
-
-        [Authorize(Roles = "ADMIN,EMPLOYEE,DELIVER,USER")]
-        [HttpGet("get-info")]
-        public async Task<IActionResult> GetCusInfo()
-        {
-            // Lấy thông tin customer id từ claim của token
-            var userIdClaim = User.FindFirst("user_id")?.Value;
-
-            if (string.IsNullOrEmpty(userIdClaim))
-            {
-                return Unauthorized("Hãy đăng nhập để xem thông tin!");
-            }
-
-            int userId;
-            if (!int.TryParse(userIdClaim, out userId))
-            {
-                return BadRequest("Không thể lấy thông tin khách hàng!");
-            }
-
-            // Tìm khách hàng và tải trước các địa chỉ của họ
-            var customer = await _context.Customers
-                .Include(c => c.Addresses) // Tải trước các địa chỉ của khách hàng
-                .Include(c => c.User) // phải tải trước tt từ User, nếu ko sẽ bị 'null'
-                .FirstOrDefaultAsync(c => c.UserId == userId);
-
-            if (customer == null)
-            {
-                return NotFound("Không tìm thấy khách hàng.");
-            }
-
-            // Lấy địa chỉ mặc định nếu có
-            var defaultAddress = customer.Addresses
-                .FirstOrDefault(a => a.IsDefault == true);
-
-            // Tạo đối tượng thông tin khách hàng
-            var cusInfo = new
-            {
-                customer?.CustomerId,
-                UserName = customer?.User?.Username,
-                customer?.FullName,
-                customer?.Phone,
-                customer?.Email,
-                customer?.CreatedAt,
-                customer?.UserImage,
-                DefaultAddress = defaultAddress != null
-                    ? $"{defaultAddress.AddressLine1}, {defaultAddress.City}"
-                    : "Không có địa chỉ mặc định",
-                customer?.UpdatedAt,
-            };
-
-            return Ok(cusInfo);
-        }
-
-        [Authorize(Roles = "ADMIN,EMPLOYEE,DELIVER,USER")]
-        [HttpGet("get-addresses")]
-        public async Task<IActionResult> GetCusAddr()
-        {
-            // Lấy thông tin customer id từ claim của token
-            var userIdClaim = User.FindFirst("user_id")?.Value;
-
-            if (string.IsNullOrEmpty(userIdClaim))
-            {
-                return Unauthorized("Hãy đăng nhập để xem thông tin!");
-            }
-
-            int userId;
-            if (!int.TryParse(userIdClaim, out userId))
-            {
-                return BadRequest("Không thể lấy thông tin khách hàng!");
-            }
-
-            // Tìm khách hàng và tải trước danh sách địa chỉ của họ
-            var customer = await _context.Customers
-                .Include(c => c.Addresses) // Tải trước các địa chỉ của khách hàng
-                .FirstOrDefaultAsync(c => c.UserId == userId);
-
-            if (customer == null)
-            {
-                return NotFound("Không tìm thấy khách hàng.");
-            }
-
-            var customerAddresses = customer.Addresses.Select(address => new
-            {
-                AddressId = address.AddressId,
-                AddressLine1 = address.AddressLine1,
-                AddressLine2 = address.AddressLine2,
-                City = address.City,
-                State = address.State,
-                IsDefault = address.IsDefault,
-                PostalCode = address.PostalCode,
-                Country = address.Country
-            }).ToList();
-
-            return Ok(customerAddresses);
         }
 
         [Authorize(Roles = "ADMIN,EMPLOYEE,DELIVER,USER")]
@@ -216,155 +122,136 @@ namespace namHub_FastFood.Controller.USER
             return Ok(cusOItems);
         }
 
-        // Add khi người dùng mua hàng hoặc thiết lập thông tin khởi đầu
-        [Authorize(Roles = "ADMIN,EMPLOYEE,DELIVER,USER")]
-        [HttpPost("add-info")]
-        public async Task<IActionResult> AddCusInfo([FromForm] UpdateCustomerInfoDto model)
+        // Lấy danh sách mã giảm giá
+        [HttpGet("get-active-discount-codes-for-customer")]
+        public async Task<IActionResult> GetActiveDiscountCodes()
         {
-            // Lấy thông tin customer id từ claim của token
-            var userId = GetUserIdFromClaims();
-            if (userId == null)
-            {
-                return Unauthorized("Hãy đăng nhập để thực hiện cập nhật thông tin!");
-            }
+            var currentDate = DateTime.UtcNow;
 
-            // Kiểm tra dữ liệu đầu vào
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            // Kiểm tra xem khách hàng đã tồn tại hay chưa
-            var existingCustomer = await _context.Customers.FirstOrDefaultAsync(c => c.UserId == userId.Value);
-            if (existingCustomer != null)
-            {
-                return BadRequest("Khách hàng đã có thông tin, hãy chọn 'Cập Nhật Thông Tin'!");
-            }
-
-            // Kiểm tra xem có file ảnh hay không
-            if (model.UserImageURL == null || model.UserImageURL.Length == 0)
-            {
-                return BadRequest("Chưa tải ảnh nào hết!");
-            }
-
-            // Lưu file ảnh
-            var fileName = Path.GetFileName(model.UserImageURL.FileName);
-            var filePath = Path.Combine(_uploadFolder, fileName);
-
-            try
-            {
-                using (var stream = new FileStream(filePath, FileMode.Create))
+            var discountCodes = await _context.DiscountCodes
+                .Where(dc => dc.IsActive
+                    && dc.StartDate <= currentDate
+                    && dc.EndDate >= currentDate
+                    && ((!dc.IsSingleUse && dc.CurrentUsageCount < dc.MaxUsageCount) || (dc.IsSingleUse && dc.CurrentUsageCount == 0))) // Kiểm tra single use và max usage count
+                .Select(dc => new
                 {
-                    await model.UserImageURL.CopyToAsync(stream);
+                    DiscountId = dc.DiscountId,
+                    Code = dc.Code,
+                    DiscountValue = dc.DiscountValue,
+                    DiscountType = dc.DiscountType,
+                    MinOrderValue = dc.MinOrderValue,
+                    StartDate = dc.StartDate,
+                    EndDate = dc.EndDate,
+                    IsActive = dc.IsActive,
+                    IsSingleUse = dc.IsSingleUse,
+                    MaxUsageCount = dc.MaxUsageCount,
+                    CurrentUsageCount = dc.CurrentUsageCount
+                })
+                .ToListAsync();
+
+            return Ok(discountCodes);
+        }
+
+        [HttpPost("apply-discount")]
+        [Authorize]
+        public async Task<IActionResult> ApplyDiscount([FromBody] ApplyDiscountDto dto)
+        {
+            // Lấy customerId từ claims
+            var customerId = GetUserIdFromClaims();
+            if (customerId == null)
+            {
+                return Unauthorized("Không tìm thấy thông tin người dùng.");
+            }
+
+            // Tìm mã giảm giá trong cơ sở dữ liệu
+            var discountCode = await _context.DiscountCodes
+                .FirstOrDefaultAsync(dc => dc.Code == dto.DiscountCode);
+
+            if (discountCode == null)
+            {
+                return NotFound("Mã giảm giá không tồn tại.");
+            }
+
+            // Kiểm tra xem mã giảm giá có còn hiệu lực không
+            if (!discountCode.IsActive)
+            {
+                return BadRequest("Mã giảm giá đã bị vô hiệu hóa.");
+            }
+
+            // Kiểm tra thời gian hiệu lực của mã giảm giá
+            var currentDate = DateTime.UtcNow;
+            if (currentDate < discountCode.StartDate || currentDate > discountCode.EndDate)
+            {
+                return BadRequest("Mã giảm giá đã hết hạn sử dụng.");
+            }
+
+            // Kiểm tra xem mã giảm giá đã hết số lần sử dụng chưa
+            if (discountCode.CurrentUsageCount >= discountCode.MaxUsageCount)
+            {
+                return BadRequest("Mã giảm giá đã hết số lần sử dụng.");
+            }
+
+            // Lấy tổng giá trị đơn hàng từ OrderId
+            var orderTotalAmount = await _context.OrderItems
+                .Where(oi => oi.OrderId == dto.OrderId)
+                .SumAsync(oi => oi.Quantity * oi.UnitPrice);
+
+            // Kiểm tra điều kiện sử dụng mã giảm giá
+            if (orderTotalAmount < discountCode.MinOrderValue)
+            {
+                return BadRequest("Tổng giá trị đơn hàng không đủ điều kiện để sử dụng mã giảm giá.");
+            }
+
+            // Tính số tiền giảm giá
+            decimal discountAmount = 0;
+
+            if (discountCode.DiscountType == "percent") // Nếu là giảm giá theo phần trăm
+            {
+                discountAmount = orderTotalAmount * (discountCode.DiscountValue / 100);
+            }
+            else // Nếu là giảm giá theo số tiền cố định
+            {
+                discountAmount = discountCode.DiscountValue;
+            }
+
+            // Kiểm tra mã giảm giá có phải là mã sử dụng một lần không
+            if (discountCode.IsSingleUse)
+            {
+                var existingUsedDiscount = await _context.UsedDiscounts
+                    .FirstOrDefaultAsync(ud => ud.DiscountId == discountCode.DiscountId && ud.CustomerId == customerId);
+
+                if (existingUsedDiscount != null)
+                {
+                    return BadRequest("Mã giảm giá này đã được sử dụng.");
                 }
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Lỗi khi lưu hình ảnh: {ex.Message}");
-            }
 
-            // Tìm người dùng và cập nhật thông tin
-            var exitingUser = await _context.Users.FindAsync(userId.Value);
-            if (exitingUser == null)
-            {
-                return NotFound("Người dùng ko tồn tại!");
-            }
-            exitingUser.UpdatedAt = DateTime.UtcNow;
-            exitingUser.FullName = model.FullName;
+            // Tính số tiền cần thanh toán
+            decimal finalAmount = orderTotalAmount - discountAmount;
 
-            // Lưu cập nhật người dùng
+            // Tăng CurrentUsageCount lên 1
+            discountCode.CurrentUsageCount += 1;
             await _context.SaveChangesAsync();
 
-            // Thêm mới khách hàng
-            var newCustomer = new Customer()
+            // Ghi nhận mã giảm giá đã sử dụng
+            var usedDiscount = new UsedDiscount
             {
-                FullName = model.FullName,
-                Email = exitingUser.Email,
-                Phone = model.Phone,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                UserId = userId.Value,
-                UserImage = $"/image/{fileName}",
+                DiscountId = discountCode.DiscountId,
+                CustomerId = customerId.Value,
+                UsedAt = DateTime.UtcNow
             };
-
-            _context.Customers.Add(newCustomer);
+            _context.UsedDiscounts.Add(usedDiscount);
             await _context.SaveChangesAsync();
 
-            return Ok("Thêm mới thông tin thành công.");
+            return Ok(new
+            {
+                DiscountCode = discountCode.Code,
+                orderTotalAmount = orderTotalAmount,
+                DiscountAmount = discountAmount,
+                FinalAmount = finalAmount
+            });
         }
 
-
-        // Update khi người dùng muốn thay đổi thông tin
-        [Authorize(Roles = "ADMIN,EMPLOYEE,DELIVER,USER")]
-        [HttpPut("update-info")]
-        public async Task<IActionResult> UpdateCusInfo([FromForm] UpdateCustomerInfoDto model)
-        {
-            // Lấy thông tin customer id từ claim của token
-            var userId = GetUserIdFromClaims();
-            if (userId == null)
-            {
-                return Unauthorized("Hãy đăng nhập để thực hiện cập nhật thông tin!");
-            }
-
-            // Tìm khách hàng
-            var customer = await _context.Customers
-                .Include(c => c.Addresses) // Tải trước các địa chỉ của khách hàng
-                .FirstOrDefaultAsync(c => c.UserId == userId.Value);
-
-            if (customer == null)
-            {
-                return NotFound("Không tìm thấy khách hàng.");
-            }
-
-            var exitingUser = await _context.Users.FindAsync(userId.Value);
-            if (exitingUser == null)
-            {
-                return NotFound("Người dùng ko tồn tại!");
-            }
-
-            // Cập nhật thông tin cho người dùng
-            exitingUser.UpdatedAt = DateTime.UtcNow;
-            exitingUser.FullName = model.FullName ?? exitingUser.FullName;
-            exitingUser.Email = model.Email ?? exitingUser.Email;
-
-            // Lưu thay đổi thông tin người dùng
-            await _context.SaveChangesAsync();
-
-            // Kiểm tra dữ liệu đầu vào
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            // Kiểm tra xem có file ảnh hay không
-            if (model.UserImageURL != null && model.UserImageURL.Length > 0)
-            {
-                var fileName = Path.GetFileName(model.UserImageURL.FileName);
-                var filePath = Path.Combine(_uploadFolder, fileName);
-
-                try
-                {
-                    using (var stream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await model.UserImageURL.CopyToAsync(stream);
-                    }
-                    customer.UserImage = $"/image/{fileName}";
-                }
-                catch (Exception ex)
-                {
-                    return StatusCode(500, $"Lỗi khi lưu hình ảnh: {ex.Message}");
-                }
-            }
-
-            // Cập nhật thông tin khách hàng
-            customer.FullName = model.FullName ?? customer.FullName;
-            customer.Phone = model.Phone ?? customer.Phone;
-            customer.Email = model.Email ?? customer.Email;
-            customer.UpdatedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-            return Ok("Cập nhật thông tin thành công.");
-        }
 
         private int? GetUserIdFromClaims()
         {
@@ -381,15 +268,13 @@ namespace namHub_FastFood.Controller.USER
 
             return null;
         }
-
-
     }
 
-    public class UpdateCustomerInfoDto
+    public class ApplyDiscountDto
     {
-        public string? FullName { get; set; }
-        public string? Phone { get; set; }
-        public string? Email { get; set; }
-        public IFormFile? UserImageURL { get; set; }
+        public string DiscountCode { get; set; }
+        public int OrderId { get; set; }
     }
+
+
 }

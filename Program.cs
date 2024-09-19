@@ -15,16 +15,29 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
     });
 // Thêm dịch vụ CORS vào container DI
+//builder.Services.AddCors(options =>
+//{
+//    options.AddPolicy("AllowAllOrigins",
+//        builder =>
+//        {
+//            builder.AllowAnyOrigin()
+//                   .AllowAnyMethod()
+//                   .AllowAnyHeader();
+//        });
+//});
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAllOrigins",
+    options.AddPolicy("AllowSpecificOrigins",
         builder =>
         {
-            builder.AllowAnyOrigin()
+            builder.WithOrigins("http://localhost:3000") // Chỉ định origin cụ thể
                    .AllowAnyMethod()
-                   .AllowAnyHeader();
+                   .AllowAnyHeader()
+                   .AllowCredentials(); // Cho phép credentials
         });
 });
+
+
 // Add Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     // Add JWT
@@ -60,6 +73,7 @@ builder.Services.AddDbContext<namHUBDbContext>(options =>
 
 // Cấu hình dịch vụ gửi email
 builder.Services.AddTransient<IEmailService, EmailService>();
+builder.Services.AddScoped<VnPayService>(); // Đăng ký VnPayService
 
 // Cấu hình Swagger để hỗ trợ Bearer Token
 builder.Services.AddSwaggerGen(c =>
@@ -101,7 +115,8 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 
 // Sử dụng chính sách CORS
-app.UseCors("AllowAllOrigins");
+//app.UseCors("AllowAllOrigins");
+app.UseCors("AllowSpecificOrigins");
 
 app.UseStaticFiles(); // Enable serving static files
 

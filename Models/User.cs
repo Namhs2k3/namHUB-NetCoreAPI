@@ -53,9 +53,6 @@ public partial class User
     public string? EmailVerificationCode { get; set; }
 
     [InverseProperty("User")]
-    public virtual ICollection<AuthenticationToken> AuthenticationTokens { get; set; } = new List<AuthenticationToken>();
-
-    [InverseProperty("User")]
     public virtual ICollection<Cart> Carts { get; set; } = new List<Cart>();
 
     [InverseProperty("User")]
@@ -63,6 +60,9 @@ public partial class User
 
     [InverseProperty("User")]
     public virtual ICollection<LoginHistory> LoginHistories { get; set; } = new List<LoginHistory>();
+
+    [InverseProperty("User")]
+    public virtual ICollection<ResetPasswordToken> ResetPasswordTokens { get; set; } = new List<ResetPasswordToken>();
 
     [InverseProperty("User")]
     public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();

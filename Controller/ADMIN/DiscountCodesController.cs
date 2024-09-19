@@ -105,7 +105,11 @@ namespace namHub_FastFood.Controller.ADMIN
             {
                 return NotFound("Không tìm thấy mã giảm giá.");
             }
-
+            var existingCodeName = await _context.DiscountCodes.FirstOrDefaultAsync(d => d.Code == discountCodeDto.Code && d.DiscountId != discountCodeId);
+            if(existingCodeName != null)
+            {
+                return BadRequest("Mã giảm giá này đã tồn tại, vui lòng đặt tên khác!");
+            }
             // Cập nhật thông tin mã giảm giá
             existingDiscountCode.Code = discountCodeDto.Code;
             existingDiscountCode.DiscountValue = discountCodeDto.DiscountValue;
@@ -114,9 +118,17 @@ namespace namHub_FastFood.Controller.ADMIN
             existingDiscountCode.StartDate = discountCodeDto.StartDate;
             existingDiscountCode.EndDate = discountCodeDto.EndDate;
             existingDiscountCode.MaxUsageCount = discountCodeDto.MaxUsageCount;
-            existingDiscountCode.IsSingleUse = discountCodeDto.IsSingleUse;
+            if(discountCodeDto.IsSingleUse == true)
+            {
+                existingDiscountCode.IsSingleUse = discountCodeDto.IsSingleUse;
+                existingDiscountCode.CurrentUsageCount = 0;
+            }
+            else
+            {
+                existingDiscountCode.IsSingleUse = discountCodeDto.IsSingleUse;
+            }
             existingDiscountCode.IsActive = discountCodeDto.IsActive;
-
+            existingDiscountCode.UpdatedAt = DateTime.UtcNow;
             // Lưu thay đổi vào database
             _context.DiscountCodes.Update(existingDiscountCode);
             await _context.SaveChangesAsync();
@@ -125,17 +137,18 @@ namespace namHub_FastFood.Controller.ADMIN
         }
     }
 
-    public class DiscountCodeDto
+    public class DiscountCodeDto : IValidatableObject
     {
         [Required]
         public string Code { get; set; }
 
-        [Range(0, 100, ErrorMessage = "Giá trị giảm giá phải từ 0 đến 100")]
+        [Required]
+        public string discountType { get; set; } // Đảm bảo rằng DiscountType luôn được cung cấp
+
         public decimal DiscountValue { get; set; }
 
         [Range(0, double.MaxValue, ErrorMessage = "Giá trị đơn hàng tối thiểu phải lớn hơn hoặc bằng 0")]
         public decimal? MinimumOrderAmount { get; set; }
-        public string discountType { get; set; }
 
         [Required]
         public DateTime StartDate { get; set; }
@@ -149,6 +162,33 @@ namespace namHub_FastFood.Controller.ADMIN
         public bool IsSingleUse { get; set; }
         public bool IsActive { get; set; }
 
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (string.Equals(discountType, "percent", StringComparison.OrdinalIgnoreCase))
+            {
+                if (DiscountValue < 0 || DiscountValue > 100)
+                {
+                    yield return new ValidationResult(
+                        "Giá trị giảm giá phải từ 0 đến 100 khi loại mã giảm giá là 'percent'.",
+                        new[] { nameof(DiscountValue) });
+                }
+            }
+            else if (string.Equals(discountType, "amount", StringComparison.OrdinalIgnoreCase))
+            {
+                if (DiscountValue <= 0)
+                {
+                    yield return new ValidationResult(
+                        "Giá trị giảm giá phải lớn hơn 0 khi loại mã giảm giá là 'amount'.",
+                        new[] { nameof(DiscountValue) });
+                }
+            }
+            else
+            {
+                yield return new ValidationResult(
+                    "Loại mã giảm giá không hợp lệ. Chỉ chấp nhận 'percent' hoặc 'amount'.",
+                    new[] { nameof(discountType) });
+            }
+        }
     }
 
 

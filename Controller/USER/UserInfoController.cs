@@ -146,7 +146,7 @@ namespace namHub_FastFood.Controller.USER
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 UserId = userId.Value,
-                UserImage = $"/image/{fileName}",
+                UserImage = $"/images/{fileName}",
             };
 
             _context.Customers.Add(newCustomer);
@@ -211,7 +211,7 @@ namespace namHub_FastFood.Controller.USER
                     {
                         await model.UserImageURL.CopyToAsync(stream);
                     }
-                    customer.UserImage = $"/image/{fileName}";
+                    customer.UserImage = $"/images/{fileName}";
                 }
                 catch (Exception ex)
                 {

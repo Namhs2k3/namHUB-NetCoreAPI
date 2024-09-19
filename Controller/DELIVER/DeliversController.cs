@@ -12,9 +12,11 @@ namespace namHub_FastFood.Controller.DELIVER
     public class DeliversController : ControllerBase
     {
         private readonly namHUBDbContext _context;
-        public DeliversController(namHUBDbContext context)
+        private readonly ILogger<DeliversController> _logger;
+        public DeliversController(namHUBDbContext context, ILogger<DeliversController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         // Xem đơn hàng nào đang đợi đc giao
@@ -49,6 +51,70 @@ namespace namHub_FastFood.Controller.DELIVER
                 .ToListAsync();
 
             return Ok(orders);
+        }
+
+        [HttpPost("delivery-completed/{orderId}")]
+        public async Task<IActionResult> DeliveryCompleted(int orderId)
+        {
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // Các thao tác cập nhật
+                var userId = GetUserIdFromClaims();
+                if (userId == null)
+                {
+                    return Unauthorized("Vui lòng đăng nhập tài khoản có quyền DELIVER để tiếp tục!");
+                }
+                var existingOrder = await _context.Orders.FindAsync(orderId);
+                if (existingOrder == null)
+                {
+                    return BadRequest("Đơn hàng ko tồn tại");
+                }
+                existingOrder.Status = "Completed";
+                var existingUser = await _context.Users.FindAsync(userId);
+                var newOrderStatusHistory = new OrderStatusHistory
+                {
+                    OrderId = orderId,
+                    Status = "Completed",
+                    StatusDate = DateTime.UtcNow,
+                    UpdatedBy = existingUser?.FullName
+                };
+                _context.OrderStatusHistories.Add(newOrderStatusHistory);
+                var existingPayment = await _context.Payments.SingleOrDefaultAsync(p => p.OrderId == orderId);
+                if (existingPayment == null)
+                {
+                    return BadRequest("Không tìm thấy thông tin thanh toán cho đơn hàng này.");
+                }
+                existingPayment.PaymentStatus = "Completed";
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Error updating order status for OrderId={OrderId}", orderId);
+                return StatusCode(500, "Đã xảy ra lỗi khi cập nhật trạng thái đơn hàng.");
+            }
+
+            return Ok("Cập nhật trạng thái thành thành công");
+        }
+
+        private int? GetUserIdFromClaims()
+        {
+            var userIdClaim = User.FindFirst("user_id")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+            {
+                return null;
+            }
+
+            if (int.TryParse(userIdClaim, out int userId))
+            {
+                return userId;
+            }
+
+            return null;
         }
 
     }

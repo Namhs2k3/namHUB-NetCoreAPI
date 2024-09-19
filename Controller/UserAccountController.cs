@@ -116,14 +116,14 @@ namespace namHub_FastFood.Controller
             var expiresAt = DateTime.UtcNow.AddHours(1); // Thay đổi thời gian hết hạn theo yêu cầu
 
             // Lưu mã xác thực vào cơ sở dữ liệu
-            var authToken = new AuthenticationToken
+            var resetPasswordToken = new ResetPasswordToken
             {
                 UserId = user.UserId,
                 Token = resetToken,
                 ExpiresAt = expiresAt,
                 CreatedAt = DateTime.UtcNow
             };
-            _context.AuthenticationTokens.Add(authToken);
+            _context.ResetPasswordTokens.Add(resetPasswordToken);
             await _context.SaveChangesAsync();
 
             // Gửi email với mã xác thực
@@ -144,7 +144,7 @@ namespace namHub_FastFood.Controller
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
         {
-            var authToken = await _context.AuthenticationTokens
+            var authToken = await _context.ResetPasswordTokens
                 .SingleOrDefaultAsync(t => t.Token == request.Token && t.ExpiresAt > DateTime.UtcNow);
 
             if (authToken == null)
@@ -170,7 +170,7 @@ namespace namHub_FastFood.Controller
             await _context.SaveChangesAsync();
 
             // Xóa mã xác thực sau khi đặt lại mật khẩu thành công
-            _context.AuthenticationTokens.Remove(authToken);
+            _context.ResetPasswordTokens.Remove(authToken);
             await _context.SaveChangesAsync();
 
             return Ok("Mật khẩu đã được đặt lại thành công.");

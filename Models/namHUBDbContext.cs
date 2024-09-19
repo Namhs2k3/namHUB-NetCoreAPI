@@ -17,8 +17,6 @@ public partial class namHUBDbContext : DbContext
 
     public virtual DbSet<Address> Addresses { get; set; }
 
-    public virtual DbSet<AuthenticationToken> AuthenticationTokens { get; set; }
-
     public virtual DbSet<Banner> Banners { get; set; }
 
     public virtual DbSet<Cart> Carts { get; set; }
@@ -51,6 +49,8 @@ public partial class namHUBDbContext : DbContext
 
     public virtual DbSet<Product> Products { get; set; }
 
+    public virtual DbSet<ResetPasswordToken> ResetPasswordTokens { get; set; }
+
     public virtual DbSet<Role> Roles { get; set; }
 
     public virtual DbSet<ShippingDetail> ShippingDetails { get; set; }
@@ -77,18 +77,6 @@ public partial class namHUBDbContext : DbContext
             entity.HasOne(d => d.Customer).WithMany(p => p.Addresses)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK__Addresses__custo__7C4F7684");
-        });
-
-        modelBuilder.Entity<AuthenticationToken>(entity =>
-        {
-            entity.HasKey(e => e.TokenId).HasName("PK__Authenti__CB3C9E1703340A24");
-
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
-            entity.Property(e => e.Token).IsFixedLength();
-
-            entity.HasOne(d => d.User).WithMany(p => p.AuthenticationTokens)
-                .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("FK__Authentic__user___4D94879B");
         });
 
         modelBuilder.Entity<Banner>(entity =>
@@ -206,6 +194,8 @@ public partial class namHUBDbContext : DbContext
         {
             entity.HasKey(e => e.OrderId).HasName("PK__Orders__465962291319CBC3");
 
+            entity.ToTable(tb => tb.HasTrigger("trg_CalculateDiscount"));
+
             entity.Property(e => e.OrderDate).HasDefaultValueSql("(getdate())");
             entity.Property(e => e.Status).HasDefaultValue("Pending");
 
@@ -272,6 +262,18 @@ public partial class namHUBDbContext : DbContext
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(getdate())");
 
             entity.HasOne(d => d.Category).WithMany(p => p.Products).HasConstraintName("FK__Products__catego__6C190EBB");
+        });
+
+        modelBuilder.Entity<ResetPasswordToken>(entity =>
+        {
+            entity.HasKey(e => e.TokenId).HasName("PK__Authenti__CB3C9E1703340A24");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.Token).IsFixedLength();
+
+            entity.HasOne(d => d.User).WithMany(p => p.ResetPasswordTokens)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK__Authentic__user___4D94879B");
         });
 
         modelBuilder.Entity<Role>(entity =>

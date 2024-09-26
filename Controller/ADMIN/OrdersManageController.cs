@@ -18,13 +18,20 @@ namespace namHub_FastFood.Controller.ADMIN
         }
 
         [HttpGet("get-orders-list")]
-        public async Task<IActionResult> Get()
+        public async Task<IActionResult> Get([FromQuery] string? status)
         {
-            var orders = await _context.Orders
+            // Nếu status có giá trị, kiểm tra nếu status không phải là "Pending", "Completed" hoặc "Failed"
+            if (!string.IsNullOrEmpty(status) && !new[] { "Pending", "Completed", "Failed" }.Contains(status))
+            {
+                return BadRequest("Invalid order status.");
+            }
+
+            // Query đơn hàng, nếu có status thì lọc theo status, nếu không thì lấy tất cả
+            var ordersQuery = _context.Orders
                 .Include(o => o.Customer) // Eager loading bảng Customer
                 .ThenInclude(c => c.Addresses) // Eager loading bảng Addresses của Customer
                 .Include(o => o.Payments) // Eager loading bảng Payments
-                .Select(o => new // Phải có từ khóa new
+                .Select(o => new
                 {
                     o.OrderId,
                     o.CustomerId,
@@ -41,15 +48,29 @@ namespace namHub_FastFood.Controller.ADMIN
                     o.DiscountCodeUsed,
                     o.DiscountAmount,
                     o.TotalAfterDiscount,
-                    // Chỉ cần gọi FirstOrDefault() cho Payments mà ko cần xét orderID vì orderID luôn khớp
-                    PaymentMethod = o.Payments.FirstOrDefault().PaymentMethod,
-                    PaymentStatus = o.Payments.FirstOrDefault().PaymentDate != null ? "Đã Thanh Toán" : "Chưa Thanh Toán",
-                })
-                .OrderByDescending(o => o.OrderDate) // Sắp xếp theo ngày đặt hàng
+                    // Sử dụng biến tạm cho Payments
+                    Payment = o.Payments.OrderByDescending(p => p.PaymentDate).FirstOrDefault(),
+                    // Điều kiện sử dụng ternary operator cho PaymentStatus
+                    PaymentStatus = o.Payments.FirstOrDefault() != null && o.Payments.FirstOrDefault().PaymentStatus == "Completed" ? "Đã Thanh Toán" :
+                                    o.Payments.FirstOrDefault() != null && o.Payments.FirstOrDefault().PaymentStatus == "Failed" ? "Thanh Toán Thất Bại" :
+                                    "Chưa Thanh Toán"
+                });
+
+            // Lọc theo status nếu có giá trị
+            if (!string.IsNullOrEmpty(status))
+            {
+                ordersQuery = ordersQuery.Where(o => o.Status == status);
+            }
+
+            // Sắp xếp theo ngày đặt hàng
+            var orders = await ordersQuery
+                .OrderByDescending(o => o.OrderDate)
                 .ToListAsync();
 
             return Ok(orders);
         }
+
+
 
 
         [Authorize(Roles = "ADMIN,DELIVER,USER")]

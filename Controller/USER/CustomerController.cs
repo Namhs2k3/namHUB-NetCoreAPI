@@ -81,9 +81,9 @@ namespace namHub_FastFood.Controller.USER
                         OrderPayMethod = order.Payments.FirstOrDefault() != null
                                          ? order.Payments.FirstOrDefault().PaymentMethod
                                          : null,
-                        OrderPayStatus = order.Payments.FirstOrDefault() != null && order.Payments.FirstOrDefault().PaymentDate != null
-                                         ? "Đã Thanh Toán"
-                                         : "Chưa Thanh Toán"
+                        OrderPayStatus = order.Payments.FirstOrDefault().PaymentStatus == "Completed" ? "Đã Thanh Toán" :
+                                        order.Payments.FirstOrDefault().PaymentStatus == "Failed" ? "Thanh Toán Thất Bại" :
+                                        "Chưa Thanh Toán"
                     }).ToList() // Chuyển về danh sách đơn hàng
                 })
                 .ToListAsync();

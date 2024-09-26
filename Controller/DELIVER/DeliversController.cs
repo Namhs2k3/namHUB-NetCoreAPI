@@ -81,12 +81,12 @@ namespace namHub_FastFood.Controller.DELIVER
                     UpdatedBy = existingUser?.FullName
                 };
                 _context.OrderStatusHistories.Add(newOrderStatusHistory);
-                var existingPayment = await _context.Payments.SingleOrDefaultAsync(p => p.OrderId == orderId);
-                if (existingPayment == null)
-                {
-                    return BadRequest("Không tìm thấy thông tin thanh toán cho đơn hàng này.");
+                var existingPayment = await _context.Payments.SingleOrDefaultAsync(p => p.OrderId == orderId && p.PaymentMethod == "Cash" && p.PaymentStatus == "Pending");
+                if (existingPayment != null) 
+                { 
+                    existingPayment.PaymentStatus = "Completed";
                 }
-                existingPayment.PaymentStatus = "Completed";
+                
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();

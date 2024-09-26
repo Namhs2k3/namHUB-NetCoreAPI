@@ -30,7 +30,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowSpecificOrigins",
         builder =>
         {
-            builder.WithOrigins("http://localhost:3000") // Chỉ định origin cụ thể
+            builder.WithOrigins("http://localhost:3000", "http://localhost:5173") // Chỉ định origin cụ thể
                    .AllowAnyMethod()
                    .AllowAnyHeader()
                    .AllowCredentials(); // Cho phép credentials
@@ -65,7 +65,8 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 
 builder.Services.AddAuthorization();
-builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+//builder.Services.AddHttpContextAccessor(); // đây là cách 1 (ngắn gọn dễ hiểu hơn, được khuyến nghị hơn)
+builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>(); // đây là cách 2 (chi tiết hơn, rõ ràng hơn)
 
 // Đăng ký DbContext
 builder.Services.AddDbContext<namHUBDbContext>(options =>

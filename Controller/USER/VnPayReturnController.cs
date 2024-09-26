@@ -71,6 +71,7 @@ namespace namHub_FastFood.Controller.USER
                     {
                         var order = await _context.Orders
                             .Include(o => o.Payments)
+                            .Include(o => o.Customer)
                             .FirstOrDefaultAsync(o => o.OrderId == orderId);
 
                         if (order == null)
@@ -93,10 +94,6 @@ namespace namHub_FastFood.Controller.USER
                                 payment.PaymentDate = DateTime.UtcNow;
 
                                 _context.Payments.Update(payment);
-
-                                // Cập nhật trạng thái đơn hàng
-                                order.Status = "Completed";
-                                _context.Orders.Update(order);
 
                                 // Cập nhật mã giảm giá nếu có
                                 if (!string.IsNullOrEmpty(order.DiscountCodeUsed))
@@ -136,13 +133,13 @@ namespace namHub_FastFood.Controller.USER
                                 // Xóa giỏ hàng và các mục giỏ hàng nếu tồn tại
                                 var cart = await _context.Carts
                                     .Include(c => c.CartItems)
-                                    .FirstOrDefaultAsync(c => c.UserId == order.CustomerId.Value);
+                                    .FirstOrDefaultAsync(c => c.UserId == order.Customer.UserId);
 
                                 if (cart != null)
                                 {
                                     _context.CartItems.RemoveRange(cart.CartItems);
                                     _context.Carts.Remove(cart);
-                                    _logger.LogInformation("Đã xóa giỏ hàng với CartId={CartId} cho UserId={UserId}", cart.CartId, order.CustomerId.Value);
+                                    _logger.LogInformation("Đã xóa giỏ hàng với CartId={CartId} cho UserId={UserId}", cart.CartId, order.Customer.UserId);
                                 }
 
                                 // Lưu thay đổi vào database
@@ -175,7 +172,8 @@ namespace namHub_FastFood.Controller.USER
                                 payment.PaymentDate = DateTime.UtcNow;
 
                                 _context.Payments.Update(payment);
-
+                                // Cập nhật đơn hàng
+                                order.Status = "Failed";
                                 // Lưu lịch sử trạng thái đơn hàng
                                 var orderStatusHistory = new OrderStatusHistory
                                 {

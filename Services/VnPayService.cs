@@ -9,10 +9,12 @@ using System.Security.Cryptography;
 public class VnPayService
 {
     private readonly IConfiguration _configuration;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public VnPayService(IConfiguration configuration)
+    public VnPayService(IConfiguration configuration, IHttpContextAccessor httpContextAccessor)
     {
         _configuration = configuration;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public string CreatePaymentUrl(long orderId, decimal amount, string orderInfo, string returnUrl, string ipAddress, string locale = "vn", string bankCode = null)
@@ -21,6 +23,12 @@ public class VnPayService
         string vnp_Url = _configuration["VNPay:vnp_Url"];
         string vnp_TmnCode = _configuration["VNPay:vnp_TmnCode"];
         string vnp_HashSecret = _configuration["VNPay:vnp_HashSecret"];
+
+        // Nếu ipAddress không được truyền vào, lấy từ HttpContext
+        if (string.IsNullOrEmpty(ipAddress))
+        {
+            ipAddress = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "0.0.0.0";
+        }
 
         VnPayLibrary vnpay = new VnPayLibrary();
 

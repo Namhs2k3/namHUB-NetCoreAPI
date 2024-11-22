@@ -22,9 +22,9 @@ namespace namHub_FastFood.Controller.ADMIN
         [HttpGet("revenue")]
         public async Task<IActionResult> GetRevenue()
         {
-            var totalRevenue = await _context.Orders
-                .Where(o => o.Status == "Completed") // Chỉ tính các đơn hàng hoàn thành
-                .SumAsync(o => o.TotalAmount);       // Tổng doanh thu từ các đơn hàng
+            var totalRevenue = await _context.Payments
+                .Where(o => o.PaymentStatus == "Completed") // Chỉ tính các đơn hàng hoàn thành
+                .SumAsync(o => o.Amount);       // Tổng doanh thu từ các đơn hàng
 
             return Ok(totalRevenue);
         }
@@ -33,30 +33,30 @@ namespace namHub_FastFood.Controller.ADMIN
         [HttpGet("revenue-by-time")]
         public async Task<IActionResult> GetRevenueByTime([FromQuery] int? year, [FromQuery] int? month, [FromQuery] int? quarter)
         {
-            var query = _context.Orders
-                .Where(o => o.Status == "Completed") // Chỉ lấy các đơn hàng đã hoàn thành
+            var query = _context.Payments
+                .Where(o => o.PaymentStatus == "Completed") // Chỉ lấy các đơn hàng đã hoàn thành
                 .AsQueryable();
 
             // Lọc theo năm nếu có
             if (year.HasValue)
             {
-                query = query.Where(o => o.OrderDate.Value.Year == year.Value);
+                query = query.Where(o => o.PaymentDate.Value.Year == year.Value);
             }
 
             // Lọc theo tháng nếu có
             if (month.HasValue)
             {
-                query = query.Where(o => o.OrderDate.Value.Month == month.Value);
+                query = query.Where(o => o.PaymentDate.Value.Month == month.Value);
             }
 
             // Lọc theo quý nếu có
             if (quarter.HasValue)
             {
-                query = query.Where(o => (o.OrderDate.Value.Month - 1) / 3 + 1 == quarter.Value);
+                query = query.Where(o => (o.PaymentDate.Value.Month - 1) / 3 + 1 == quarter.Value);
             }
 
             var totalRevenue = await query
-                .SumAsync(o => o.TotalAmount);
+                .SumAsync(o => o.Amount);
 
             return Ok(totalRevenue);
         }
@@ -67,9 +67,9 @@ namespace namHub_FastFood.Controller.ADMIN
         {
             // Đảm bảo endDate không bao gồm ngày cuối cùng, nên thêm một ngày vào endDate để bao gồm toàn bộ ngày kết thúc
             endDate = endDate.Date.AddDays(1).AddTicks(-1);
-            var totalRevenue = await _context.Orders
-                .Where(o => o.Status == "Completed" && o.OrderDate >= startDate && o.OrderDate <= endDate)
-                .SumAsync(o => o.TotalAmount);
+            var totalRevenue = await _context.Payments
+                .Where(o => o.PaymentStatus == "Completed" && o.PaymentDate >= startDate && o.PaymentDate <= endDate)
+                .SumAsync(o => o.Amount);
 
             return Ok(totalRevenue);
         }
@@ -78,9 +78,9 @@ namespace namHub_FastFood.Controller.ADMIN
         [HttpGet("revenue-by-payment-method")]
         public async Task<IActionResult> GetRevenueByPaymentMethod(string paymentMethod)
         {
-            var totalRevenue = await _context.Orders
-                .Where(o => o.Status == "Completed" && o.Payments.Any(p => p.PaymentMethod == paymentMethod))
-                .SumAsync(o => o.TotalAmount);
+            var totalRevenue = await _context.Payments
+                .Where(o => o.PaymentStatus == "Completed" && o.PaymentMethod == paymentMethod)
+                .SumAsync(o => o.Amount);
 
             return Ok(totalRevenue);
         }
@@ -91,7 +91,7 @@ namespace namHub_FastFood.Controller.ADMIN
         {
             // Lọc các đơn hàng hoàn thành trong khoảng thời gian
             var revenueByPaymentMethod = await _context.Payments
-                .Where(p => p.Order.Status == "Completed" && p.Order.OrderDate >= startDate && p.Order.OrderDate <= endDate)
+                .Where(p => p.PaymentStatus == "Completed" && p.PaymentDate >= startDate && p.PaymentDate <= endDate.Date.AddDays(1).AddTicks(-1))
                 .GroupBy(p => p.PaymentMethod) // Nhóm theo phương thức thanh toán
                 .Select(group => new
                 {
@@ -108,38 +108,76 @@ namespace namHub_FastFood.Controller.ADMIN
         [HttpGet("revenue-by-category")]
         public async Task<IActionResult> GetRevenueByCategory()
         {
-            var revenueByCategory = await _context.OrderItems
-                .Where(oi => oi.Order.Status == "Completed") // Chỉ các đơn hàng đã hoàn thành
-                .GroupBy(oi => oi.Product.CategoryId) // Nhóm theo danh mục sản phẩm
+            // Bước 1: Lấy dữ liệu OrderItems và thông tin giảm giá
+            var filteredData = await _context.OrderItems
+                .Where(oi => oi.Product != null &&
+                             oi.Product.Category != null &&
+                             oi.Order.Payments.Any(p => p.PaymentStatus == "Completed"))
+                .Select(oi => new
+                {
+                    CategoryId = oi.Product.CategoryId,
+                    CategoryName = oi.Product.Category.CategoryName,
+                    ProductPrice = oi.Product.Price, // Giá sản phẩm gốc
+                    TotalAmount = oi.TotalPrice, // Tổng giá trị hóa đơn chưa giảm giá
+                    OrderTotal = oi.Order.TotalAmount, // Tổng giá trị hóa đơn (cả giảm giá)
+                    DiscountAmount = oi.Order.DiscountAmount // Mức giảm giá của hóa đơn
+                })
+                .ToListAsync();
+
+            // Bước 2: Tính tổng giá trị của hóa đơn và phân bổ giảm giá
+            var revenueByCategory = filteredData
+                .GroupBy(item => new { item.CategoryId, item.CategoryName })
                 .Select(group => new
                 {
-                    CategoryId = group.Key,
-                    CategoryName = _context.Categories.Where(c => c.CategoryId == group.Key).Select(c => c.CategoryName).FirstOrDefault(),
-                    TotalRevenue = group.Sum(oi => oi.TotalPrice) // Tổng doanh thu cho mỗi danh mục sản phẩm
+                    CategoryId = group.Key.CategoryId,
+                    CategoryName = group.Key.CategoryName,
+                    TotalRevenue = group.Sum(item =>
+                        item.TotalAmount -
+                        ((item.TotalAmount / item.OrderTotal) * item.DiscountAmount)) // Áp dụng phân bổ giảm giá cho từng OrderItem
                 })
-                .OrderByDescending(result => result.TotalRevenue) // Sắp xếp theo doanh thu giảm dần
-                .ToListAsync();
+                .OrderByDescending(result => result.TotalRevenue)
+                .ToList();
 
             return Ok(revenueByCategory);
         }
-        
+
+
+
+
+
         // Thống kê doanh thu theo danh mục sản phẩm trong khoảng thời gian
         [HttpGet("revenue-by-category-in-period-time")]
         public async Task<IActionResult> GetRevenueByCategory([FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
         {
-            var revenueByCategory = await _context.OrderItems
-                .Where(oi => oi.Order.Status == "Completed"
-                              && oi.Order.OrderDate >= startDate
-                              && oi.Order.OrderDate <= endDate)
-                .GroupBy(oi => oi.Product.CategoryId) // Nhóm theo danh mục sản phẩm
+            // Bước 1: Lấy dữ liệu OrderItems và thông tin giảm giá
+            var filteredData = await _context.OrderItems
+                .Where(oi => oi.Product != null &&
+                             oi.Product.Category != null &&
+                             oi.Order.Payments.Any(p => p.PaymentStatus == "Completed" && p.PaymentDate >= startDate && p.PaymentDate <= endDate.Date.AddDays(1).AddTicks(-1)))
+                .Select(oi => new
+                {
+                    CategoryId = oi.Product.CategoryId,
+                    CategoryName = oi.Product.Category.CategoryName,
+                    ProductPrice = oi.Product.Price, // Giá sản phẩm gốc
+                    TotalAmount = oi.TotalPrice, // Tổng giá trị hóa đơn chưa giảm giá
+                    OrderTotal = oi.Order.TotalAmount, // Tổng giá trị hóa đơn (cả giảm giá)
+                    DiscountAmount = oi.Order.DiscountAmount // Mức giảm giá của hóa đơn
+                })
+                .ToListAsync();
+
+            // Bước 2: Tính tổng giá trị của hóa đơn và phân bổ giảm giá
+            var revenueByCategory = filteredData
+                .GroupBy(item => new { item.CategoryId, item.CategoryName })
                 .Select(group => new
                 {
-                    CategoryId = group.Key,
-                    CategoryName = _context.Categories.Where(c => c.CategoryId == group.Key).Select(c => c.CategoryName).FirstOrDefault(),
-                    TotalRevenue = group.Sum(oi => oi.TotalPrice) // Tổng doanh thu cho mỗi danh mục sản phẩm
+                    CategoryId = group.Key.CategoryId,
+                    CategoryName = group.Key.CategoryName,
+                    TotalRevenue = group.Sum(item =>
+                        item.TotalAmount -
+                        ((item.TotalAmount / item.OrderTotal) * item.DiscountAmount)) // Áp dụng phân bổ giảm giá cho từng OrderItem
                 })
-                .OrderByDescending(result => result.TotalRevenue) // Sắp xếp theo doanh thu giảm dần
-                .ToListAsync();
+                .OrderByDescending(result => result.TotalRevenue)
+                .ToList();
 
             return Ok(revenueByCategory);
         }
@@ -148,16 +186,34 @@ namespace namHub_FastFood.Controller.ADMIN
         [HttpGet("revenue-by-product")]
         public async Task<IActionResult> GetRevenueByProduct()
         {
-            var revenueByProduct = await _context.OrderItems
-                .Where(oi => oi.Order.Status == "Completed") // Chỉ tính các đơn hàng hoàn thành
-                .GroupBy(oi => oi.ProductId)
+            // Bước 1: Lấy dữ liệu OrderItems và thông tin giảm giá
+            var filteredData = await _context.OrderItems
+                .Where(oi => oi.Product != null &&
+                             oi.Order.Payments.Any(p => p.PaymentStatus == "Completed"))
+                .Select(oi => new
+                {
+                    ProdId = oi.Product.ProductId,
+                    ProdName = oi.Product.ProductName,
+                    ProductPrice = oi.Product.Price, // Giá sản phẩm gốc
+                    TotalAmount = oi.TotalPrice, // Tổng giá trị hóa đơn chưa giảm giá
+                    OrderTotal = oi.Order.TotalAmount, // Tổng giá trị hóa đơn (cả giảm giá)
+                    DiscountAmount = oi.Order.DiscountAmount // Mức giảm giá của hóa đơn
+                })
+                .ToListAsync();
+
+            // Bước 2: Tính tổng giá trị của hóa đơn và phân bổ giảm giá
+            var revenueByProduct = filteredData
+                .GroupBy(item => new { item.ProdId, item.ProdName })
                 .Select(group => new
                 {
-                    ProductId = group.Key,
-                    TotalRevenue = group.Sum(oi => oi.TotalPrice) // Tổng doanh thu cho mỗi sản phẩm
+                    ProductId = group.Key.ProdId,
+                    ProductName = group.Key.ProdName,
+                    TotalRevenue = group.Sum(item =>
+                        item.TotalAmount -
+                        ((item.TotalAmount / item.OrderTotal) * item.DiscountAmount)) // Áp dụng phân bổ giảm giá cho từng OrderItem
                 })
-                .OrderByDescending(result => result.TotalRevenue) // Sắp xếp theo doanh thu giảm dần
-                .ToListAsync();
+                .OrderByDescending(result => result.TotalRevenue)
+                .ToList();
 
             return Ok(revenueByProduct);
         }
@@ -166,17 +222,34 @@ namespace namHub_FastFood.Controller.ADMIN
         [HttpGet("revenue-by-product-in-period-time")]
         public async Task<IActionResult> GetRevenueByProduct([FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
         {
-            // Lọc các đơn hàng hoàn thành trong khoảng thời gian
-            var revenueByProduct = await _context.OrderItems
-                .Where(oi => oi.Order.Status == "Completed" && oi.Order.OrderDate >= startDate && oi.Order.OrderDate <= endDate)
-                .GroupBy(oi => oi.ProductId)
+            // Bước 1: Lấy dữ liệu OrderItems và thông tin giảm giá
+            var filteredData = await _context.OrderItems
+                .Where(oi => oi.Product != null &&
+                             oi.Order.Payments.Any(p => p.PaymentStatus == "Completed" && p.PaymentDate >= startDate && p.PaymentDate <= endDate.Date.AddDays(1).AddTicks(-1)))
+                .Select(oi => new
+                {
+                    ProdId = oi.Product.ProductId,
+                    ProdName = oi.Product.ProductName,
+                    ProductPrice = oi.Product.Price, // Giá sản phẩm gốc
+                    TotalAmount = oi.TotalPrice, // Tổng giá trị hóa đơn chưa giảm giá
+                    OrderTotal = oi.Order.TotalAmount, // Tổng giá trị hóa đơn (cả giảm giá)
+                    DiscountAmount = oi.Order.DiscountAmount // Mức giảm giá của hóa đơn
+                })
+                .ToListAsync();
+
+            // Bước 2: Tính tổng giá trị của hóa đơn và phân bổ giảm giá
+            var revenueByProduct = filteredData
+                .GroupBy(item => new { item.ProdId, item.ProdName })
                 .Select(group => new
                 {
-                    ProductId = group.Key,
-                    TotalRevenue = group.Sum(oi => oi.TotalPrice) // Tổng doanh thu cho mỗi sản phẩm
+                    ProductId = group.Key.ProdId,
+                    ProductName = group.Key.ProdName,
+                    TotalRevenue = group.Sum(item =>
+                        item.TotalAmount -
+                        ((item.TotalAmount / item.OrderTotal) * item.DiscountAmount)) // Áp dụng phân bổ giảm giá cho từng OrderItem
                 })
-                .OrderByDescending(result => result.TotalRevenue) // Sắp xếp theo doanh thu giảm dần
-                .ToListAsync();
+                .OrderByDescending(result => result.TotalRevenue)
+                .ToList();
 
             return Ok(revenueByProduct);
         }
@@ -204,7 +277,7 @@ namespace namHub_FastFood.Controller.ADMIN
             // Lọc theo ngày kết thúc nếu có
             if (endDate.HasValue)
             {
-                query = query.Where(o => o.OrderDate <= endDate.Value);
+                query = query.Where(o => o.OrderDate <= endDate.Value.Date.AddDays(1).AddTicks(-1));
             }
 
             // Đếm số lượng đơn hàng
@@ -215,14 +288,25 @@ namespace namHub_FastFood.Controller.ADMIN
 
         // 3. Thống kê số người dùng mới trong tháng
         [HttpGet("new-users")]
-        public async Task<IActionResult> GetNewUsers()
+        public async Task<IActionResult> GetNewUsers(int year, int month)
         {
-            var startDate = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1); // Đầu tháng
+            var startDate = new DateTime(year, month, 1); // Đầu tháng
+            var endDate = startDate.AddMonths(1); // Bắt đầu ngày đầu tiên của tháng tiếp theo
+
             var newUserCount = await _context.Users
-                .Where(u => u.CreatedAt >= startDate) // Người dùng mới trong tháng
+                .Where(u => u.CreatedAt >= startDate && u.CreatedAt < endDate) // Người dùng mới trong tháng
                 .CountAsync();
 
             return Ok(newUserCount);
+        }
+
+        [HttpGet("all-users")]
+        public async Task<IActionResult> GetAllUsers()
+        {
+            var allUserCount = await _context.Users
+                .CountAsync();
+
+            return Ok(allUserCount);
         }
 
         [HttpGet("new-users-by-year-group-by-quarter")]
@@ -283,26 +367,28 @@ namespace namHub_FastFood.Controller.ADMIN
         [HttpGet("best-sellers-by-quarter")]
         public async Task<IActionResult> GetBestSellersByQuarter([FromQuery] int? year)
         {
-            // Nếu không có năm, sử dụng năm hiện tại
+            // Sử dụng năm hiện tại nếu không truyền vào
             int selectedYear = year ?? DateTime.Now.Year;
 
-            // Đối tượng chứa các quý và khoảng thời gian tương ứng
-            var quarters = new[]
+            // Xác định các quý
+            var quarters = Enumerable.Range(1, 4).Select(q => new
             {
-                new { Quarter = 1, StartDate = new DateTime(selectedYear, 1, 1), EndDate = new DateTime(selectedYear, 3, 31) },
-                new { Quarter = 2, StartDate = new DateTime(selectedYear, 4, 1), EndDate = new DateTime(selectedYear, 6, 30) },
-                new { Quarter = 3, StartDate = new DateTime(selectedYear, 7, 1), EndDate = new DateTime(selectedYear, 9, 30) },
-                new { Quarter = 4, StartDate = new DateTime(selectedYear, 10, 1), EndDate = new DateTime(selectedYear, 12, 31) }
-            };
+                Quarter = q,
+                StartDate = new DateTime(selectedYear, (q - 1) * 3 + 1, 1),
+                EndDate = new DateTime(selectedYear, q * 3, DateTime.DaysInMonth(selectedYear, q * 3))
+            });
 
-            // Tạo danh sách để lưu sản phẩm bán chạy theo từng quý
+            // Tạo dictionary để lưu dữ liệu sản phẩm bán chạy theo quý
             var bestSellersByQuarter = new Dictionary<int, List<BestSellerDto>>();
 
-            // Lấy sản phẩm bán chạy cho từng quý
             foreach (var quarter in quarters)
             {
+                // Lấy danh sách sản phẩm bán chạy trong khoảng thời gian của quý
                 var bestSellers = await _context.OrderItems
-                    .Where(oi => oi.Order.OrderDate >= quarter.StartDate && oi.Order.OrderDate <= quarter.EndDate)
+                    .Where(oi => oi.Order.Payments
+                        .Any(p => p.PaymentStatus == "Completed" &&
+                                  p.PaymentDate >= quarter.StartDate &&
+                                  p.PaymentDate <= quarter.EndDate))
                     .GroupBy(oi => oi.Product)
                     .Select(group => new BestSellerDto
                     {
@@ -311,19 +397,20 @@ namespace namHub_FastFood.Controller.ADMIN
                         TotalSold = group.Sum(oi => oi.Quantity)
                     })
                     .OrderByDescending(g => g.TotalSold)
-                    .Take(5) // Lấy 5 sản phẩm bán chạy nhất
+                    .Take(5)
                     .ToListAsync();
 
                 bestSellersByQuarter[quarter.Quarter] = bestSellers;
             }
 
-            // Trả về sản phẩm bán chạy cho từng quý
+            // Trả về kết quả
             return Ok(new
             {
                 Year = selectedYear,
                 Quarters = bestSellersByQuarter
             });
         }
+
     }
     // DTO để chứa thông tin sản phẩm bán chạy
     public class BestSellerDto

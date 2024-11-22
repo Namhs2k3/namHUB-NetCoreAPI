@@ -68,7 +68,7 @@ namespace namHub_FastFood.Controller
             // Tạo liên kết xác thực email
             var verificationLink = Url.Action(
                 "VerifyEmail",
-                "User",
+                "UserAccount",
                 new { userId = user.UserId, code = emailVerificationCode },
                 Request.Scheme
             );

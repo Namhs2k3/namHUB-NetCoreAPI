@@ -498,8 +498,8 @@ namespace namHub_FastFood.Controller.USER
         }
 
         [Authorize]
-        [HttpDelete("delete-order-item")]
-        public async Task<IActionResult> DeleteOrderItem(int foodId)
+        [HttpDelete("delete-cart-item")]
+        public async Task<IActionResult> DeleteCartItem(int foodId)
         {
             var userId = GetUserIdFromClaims();
             if (userId == null)

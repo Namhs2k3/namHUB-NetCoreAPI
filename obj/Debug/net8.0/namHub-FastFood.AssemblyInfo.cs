@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("namHub-FastFood")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+39a2f9c63acb60786f027bf6a6519b81548fc9ff")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+51ac1613ef970d5aed63f9bccfe6eb40af98a56c")]
 [assembly: System.Reflection.AssemblyProductAttribute("namHub-FastFood")]
 [assembly: System.Reflection.AssemblyTitleAttribute("namHub-FastFood")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

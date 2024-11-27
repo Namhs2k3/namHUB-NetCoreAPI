@@ -32,6 +32,10 @@ public partial class Category
     [StringLength(255)]
     public string? ImgUrl { get; set; }
 
+    [Column("keywords")]
+    [StringLength(255)]
+    public string? Keywords { get; set; }
+
     [InverseProperty("ParentCategory")]
     public virtual ICollection<Category> InverseParentCategory { get; set; } = new List<Category>();
 

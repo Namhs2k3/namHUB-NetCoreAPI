@@ -27,30 +27,40 @@ namespace namHub_FastFood.Controller.ADMIN
             }
         }
         [HttpGet("get-products-list")]
-        public async Task<IActionResult> GetProducts()
+        public async Task<IActionResult> GetProducts(int? id, string? name)
         {
             // Tạo URL đầy đủ (base URL + đường dẫn hình ảnh)
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
 
-            var products = await _context.Products
-                .Select(p => new //phải có từ khóa "new"
-                {
-                    p.ProductId,
-                    p.ProductName,
-                    p.Description,
-                    p.Price,
-                    p.StockQuantity,
-                    p.CategoryId,
-                    CategoryName = p.Category.CategoryName,
-                    ImgURL = $"{baseUrl}{p.ImageUrl}", // Đảm bảo trả về URL hình ảnh
-                    p.IsHidden,
-                    p.IsPopular,
-                    p.DiscountedPrice,
-                    p.DiscountPercentage
-                })
+            var products =  _context.Products.AsQueryable();
+
+            if (id.HasValue && id.Value != 0)
+            {
+                products = products.Where(p => p.ProductId == id.Value);
+            }
+            if(!string.IsNullOrWhiteSpace(name))
+            {
+                products = products.Where(p => p.ProductName.Contains(name) || (p.Category != null && p.Category.CategoryName.Contains(name)));
+            }
+            var result = await products.Select(p => new //phải có từ khóa "new"
+            {
+                p.ProductId,
+                p.ProductName,
+                p.Description,
+                p.Price,
+                p.StockQuantity,
+                p.CategoryId,
+                CategoryName = p.Category.CategoryName,
+                ImgURL = $"{baseUrl}{p.ImageUrl}", // Đảm bảo trả về URL hình ảnh
+                p.IsHidden,
+                p.IsPopular,
+                p.DiscountedPrice,
+                p.DiscountPercentage,
+                p.Keywords
+            })
                 .ToListAsync();
 
-            return Ok(products);
+            return Ok(result);
         }
 
         [HttpPost("add-product")]
@@ -153,6 +163,7 @@ namespace namHub_FastFood.Controller.ADMIN
             existingProduct.UpdatedAt = DateTime.Now;
             existingProduct.IsPopular = product.IsPopular;
             existingProduct.IsHidden = product.IsHidden;
+            existingProduct.Keywords = product.keywords;
 
             // Cập nhật giá giảm và phần trăm giảm
             existingProduct.DiscountedPrice = product.DiscountedPrice ?? product.Price;
@@ -175,6 +186,8 @@ namespace namHub_FastFood.Controller.ADMIN
         public int CategoryId { get; set; }
         public IFormFile? imgFile { get; set; }
         public decimal? DiscountedPrice { get; set; }
+
+        public string? keywords { get; set; }
     }
 
 }

@@ -44,6 +44,7 @@ namespace namHub_FastFood.Controller.ADMIN
                     CategoryName = c.CategoryName,
                     ImgURL = $"{baseUrl}{c.ImgUrl}",
                     Description = c.Description,
+                    Keywords = c.Keywords,
                 })
                 .ToListAsync();
 
@@ -128,6 +129,7 @@ namespace namHub_FastFood.Controller.ADMIN
             category.Description = myCategory.CategoryDescription;
             category.ImgUrl = $"/images/{fileName}";
             category.UpdatedAt = DateTime.Now; // Cập nhật thời gian sửa đổi
+            category.Keywords = myCategory.keywords;
 
             // Lưu thay đổi vào cơ sở dữ liệu
             await _context.SaveChangesAsync();
@@ -146,6 +148,8 @@ namespace namHub_FastFood.Controller.ADMIN
         public string? CategoryDescription { get; set; } // Có thể là null
 
         public IFormFile? imgFile { get; set; } // Thêm cột imgURL
+
+        public string? keywords { get; set; }
     }
 
 }

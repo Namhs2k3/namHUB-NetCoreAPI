@@ -50,6 +50,10 @@ public partial class Product
     [Column(TypeName = "decimal(5, 2)")]
     public decimal? DiscountPercentage { get; set; }
 
+    [Column("keywords")]
+    [StringLength(255)]
+    public string? Keywords { get; set; }
+
     [InverseProperty("Product")]
     public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
 

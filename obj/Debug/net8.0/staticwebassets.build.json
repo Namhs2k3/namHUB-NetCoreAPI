@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "t2SHuzV8s04Yj3BPnJNt+57eu0OL6ii3y5N3mdT7ptQ=",
+  "Hash": "YJVtfFwU1JlbjRCmsvYTZEmoTgzsww7/cDgfLI5KvXw=",
   "Source": "namHub-FastFood",
   "BasePath": "_content/namHub-FastFood",
   "Mode": "Default",
@@ -72,6 +72,25 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\images\\copy1.jpg"
+    },
+    {
+      "Identity": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\Corgy.jpg",
+      "SourceId": "namHub-FastFood",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\",
+      "BasePath": "_content/namHub-FastFood",
+      "RelativePath": "images/Corgy.jpg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\images\\Corgy.jpg"
     },
     {
       "Identity": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\dotnet_bot2.png",

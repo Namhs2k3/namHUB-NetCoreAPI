@@ -1,6 +1,10 @@
 {
   "Files": [
     {
+      "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\Corgy.jpg",
+      "PackagePath": "staticwebassets\\images\\Corgy.jpg"
+    },
+    {
       "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\bg3.jpg",
       "PackagePath": "staticwebassets\\images\\bg3.jpg"
     },

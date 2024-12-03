@@ -77,7 +77,7 @@ namespace namHub_FastFood.Controller.DELIVER
                 {
                     OrderId = orderId,
                     Status = "Completed",
-                    StatusDate = DateTime.UtcNow,
+                    StatusDate = DateTime.Now,
                     UpdatedBy = existingUser?.FullName
                 };
                 _context.OrderStatusHistories.Add(newOrderStatusHistory);

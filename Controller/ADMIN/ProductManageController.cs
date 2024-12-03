@@ -72,10 +72,24 @@ namespace namHub_FastFood.Controller.ADMIN
                 return BadRequest(ModelState);
             }
 
+            var duplicateProduct = await _context.Products
+                                                    .AnyAsync(p => p.ProductName == myProduct.ProductName);
+            if (duplicateProduct)
+            {
+                return BadRequest("Tên sản phẩm đã tồn tại!");
+            }
+
             // Kiểm tra xem có file ảnh hay không
             if (myProduct.imgFile == null || myProduct.imgFile.Length == 0)
             {
-                return BadRequest("No image uploaded.");
+                return BadRequest("Vui lòng chọn ảnh!");
+            }
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+            var extension = Path.GetExtension(myProduct.imgFile.FileName).ToLower();
+            if (!allowedExtensions.Contains(extension))
+            {
+                return BadRequest("Chỉ hỗ trợ các định dạng ảnh: .jpg, .jpeg, .png, .gif.");
             }
 
             // Lưu file ảnh
@@ -90,13 +104,17 @@ namespace namHub_FastFood.Controller.ADMIN
             // Kiểm tra nếu giá sau giảm không được lớn hơn giá gốc
             if (myProduct.DiscountedPrice > myProduct.Price)
             {
-                return BadRequest("Discounted price cannot be greater than the original price.");
+                return BadRequest("Giá đã giảm không được lớn hơn giá gốc!");
             }
 
-            // Tính phần trăm giảm giá nếu giá gốc và giá giảm khác nhau
-            var discountPercentage = myProduct.DiscountedPrice < myProduct.Price
-                ? ((myProduct.Price - myProduct.DiscountedPrice) / myProduct.Price) * 100
-                : 0;
+            decimal? discountPercentage = 0;
+            if (myProduct.Price > 0)
+            {
+                // Tính phần trăm giảm giá nếu giá gốc và giá giảm khác nhau
+                 discountPercentage = myProduct.DiscountedPrice < myProduct.Price
+                    ? ((myProduct.Price - myProduct.DiscountedPrice) / myProduct.Price) * 100
+                    : 0;
+            }
 
             var product = new Product()
             {
@@ -135,12 +153,26 @@ namespace namHub_FastFood.Controller.ADMIN
             // Kiểm tra nếu DiscountedPrice lớn hơn Price
             if (product.DiscountedPrice.HasValue && product.DiscountedPrice > product.Price)
             {
-                return BadRequest("DiscountedPrice cannot be greater than Price.");
+                return BadRequest("Giá đã giảm không được lớn hơn giá gốc");
             }
+
+            var duplicateProduct = await _context.Products
+                                                    .AnyAsync(p => p.ProductName == product.ProductName && p.ProductId != id);
+            if (duplicateProduct)
+            {
+                return BadRequest("Tên sản phẩm đã tồn tại!");
+            }
+
 
             // Kiểm tra xem có file ảnh mới hay không
             if (product.imgFile != null && product.imgFile.Length > 0)
             {
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+                var extension = Path.GetExtension(product.imgFile.FileName).ToLower();
+                if (!allowedExtensions.Contains(extension))
+                {
+                    return BadRequest("Chỉ hỗ trợ các định dạng ảnh: .jpg, .jpeg, .png, .gif.");
+                }
                 // Lưu file ảnh
                 var fileName = Path.GetFileName(product.imgFile.FileName);
                 var filePath = Path.Combine(_uploadFolder, fileName);
@@ -167,7 +199,15 @@ namespace namHub_FastFood.Controller.ADMIN
 
             // Cập nhật giá giảm và phần trăm giảm
             existingProduct.DiscountedPrice = product.DiscountedPrice ?? product.Price;
-            existingProduct.DiscountPercentage = ((product.Price - existingProduct.DiscountedPrice) / product.Price) * 100;
+            if (product.Price > 0)
+            {
+                existingProduct.DiscountPercentage =
+                    ((product.Price - existingProduct.DiscountedPrice) / product.Price) * 100;
+            }
+            else
+            {
+                existingProduct.DiscountPercentage = 0;
+            }
 
             await _context.SaveChangesAsync();
             return Ok(existingProduct);

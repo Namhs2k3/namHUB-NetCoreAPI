@@ -128,7 +128,7 @@ namespace namHub_FastFood.Controller.USER
         [HttpGet("get-active-discount-codes-for-customer")]
         public async Task<IActionResult> GetActiveDiscountCodes()
         {
-            var currentDate = DateTime.UtcNow;
+            var currentDate = DateTime.Now;
 
             var discountCodes = await _context.DiscountCodes
                 .Where(dc => dc.IsActive
@@ -181,7 +181,7 @@ namespace namHub_FastFood.Controller.USER
             }
 
             // Kiểm tra thời gian hiệu lực của mã giảm giá
-            var currentDate = DateTime.UtcNow;
+            var currentDate = DateTime.Now;
             if (currentDate < discountCode.StartDate || currentDate > discountCode.EndDate)
             {
                 return BadRequest("Mã giảm giá đã hết hạn sử dụng.");
@@ -240,7 +240,7 @@ namespace namHub_FastFood.Controller.USER
             {
                 DiscountId = discountCode.DiscountId,
                 CustomerId = customerId.Value,
-                UsedAt = DateTime.UtcNow
+                UsedAt = DateTime.Now
             };
             _context.UsedDiscounts.Add(usedDiscount);
             await _context.SaveChangesAsync();
@@ -349,8 +349,8 @@ namespace namHub_FastFood.Controller.USER
                 var newCart = new Cart
                 {
                     UserId = userId,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now,
                 };
 
                 _context.Add(newCart);
@@ -359,7 +359,7 @@ namespace namHub_FastFood.Controller.USER
             }
             else 
             { 
-                existingCart.UpdatedAt = DateTime.UtcNow;
+                existingCart.UpdatedAt = DateTime.Now;
                 cartId = existingCart.CartId;
             }
                 
@@ -386,7 +386,7 @@ namespace namHub_FastFood.Controller.USER
             }
             else
             {
-                existingCartItem.UpdatedAt = DateTime.UtcNow;
+                existingCartItem.UpdatedAt = DateTime.Now;
                 // như này là sai: exitingCartItem.Quantity = exitingCartItem.Quantity++;
                 //như này mới đúng
                 existingCartItem.Quantity++;
@@ -592,7 +592,7 @@ namespace namHub_FastFood.Controller.USER
                 {
                     var coupon = await _context.DiscountCodes
                         .FirstOrDefaultAsync(c => c.Code == request.CouponCode && c.IsActive &&
-                                                  c.StartDate <= DateTime.UtcNow && c.EndDate >= DateTime.UtcNow &&
+                                                  c.StartDate <= DateTime.Now && c.EndDate >= DateTime.Now &&
                                                   ((!c.IsSingleUse && c.CurrentUsageCount < c.MaxUsageCount) || (c.IsSingleUse && c.CurrentUsageCount == 0)));
 
                     if (coupon == null)
@@ -623,7 +623,7 @@ namespace namHub_FastFood.Controller.USER
                 var newOrder = new Order
                 {
                     CustomerId = customer.CustomerId,
-                    OrderDate = DateTime.UtcNow,
+                    OrderDate = DateTime.Now,
                     Status = "Pending",
                     TotalAmount = totalAmount,
                     DiscountCodeUsed = request.CouponCode,
@@ -659,7 +659,7 @@ namespace namHub_FastFood.Controller.USER
                     var payment = new Payment
                     {
                         OrderId = newOrder.OrderId,
-                        PaymentDate = DateTime.UtcNow,
+                        PaymentDate = DateTime.Now,
                         PaymentMethod = "VNPay",
                         Amount = totalAfterDiscount,
                         PaymentStatus = "Pending"
@@ -694,7 +694,7 @@ namespace namHub_FastFood.Controller.USER
                     var payment = new Payment
                     {
                         OrderId = newOrder.OrderId,
-                        PaymentDate = DateTime.UtcNow,
+                        PaymentDate = DateTime.Now,
                         PaymentMethod = "Cash",
                         Amount = totalAfterDiscount,
                         PaymentStatus = "Completed"
@@ -713,7 +713,7 @@ namespace namHub_FastFood.Controller.USER
                     {
                         OrderId = newOrder.OrderId,
                         Status = "Completed",
-                        StatusDate = DateTime.UtcNow,
+                        StatusDate = DateTime.Now,
                         UpdatedBy = "System via Cash Payment"
                     };
                     _context.OrderStatusHistories.Add(orderStatusHistory);
@@ -746,7 +746,7 @@ namespace namHub_FastFood.Controller.USER
                             {
                                 DiscountId = couponToUpdate.DiscountId,
                                 CustomerId = customer.CustomerId, // Sử dụng CustomerId đúng
-                                UsedAt = DateTime.UtcNow
+                                UsedAt = DateTime.Now
                             };
 
                             _context.UsedDiscounts.Add(usedDiscount);
@@ -840,7 +840,7 @@ namespace namHub_FastFood.Controller.USER
                     {
                         OrderId = order.OrderId,
                         Status = "Completed",
-                        StatusDate = DateTime.UtcNow,
+                        StatusDate = DateTime.Now,
                         UpdatedBy = "VNPay"
                     };
                     _context.OrderStatusHistories.Add(orderStatusHistory);
@@ -872,7 +872,7 @@ namespace namHub_FastFood.Controller.USER
                             {
                                 DiscountId = couponToUpdate.DiscountId,
                                 CustomerId = order.CustomerId.Value,
-                                UsedAt = DateTime.UtcNow
+                                UsedAt = DateTime.Now
                             };
 
                             _context.UsedDiscounts.Add(usedDiscount);
@@ -905,7 +905,7 @@ namespace namHub_FastFood.Controller.USER
                     {
                         OrderId = order.OrderId,
                         Status = "Failed",
-                        StatusDate = DateTime.UtcNow,
+                        StatusDate = DateTime.Now,
                         UpdatedBy = "VNPay"
                     };
                     _context.OrderStatusHistories.Add(orderStatusHistory);
@@ -940,7 +940,7 @@ namespace namHub_FastFood.Controller.USER
                 { "vnp_Amount", ((long)(amount * 100)).ToString() }, // VNPay yêu cầu số tiền theo đơn vị VND (không có dấu phẩy)
                 { "vnp_ReturnUrl", vnp_ReturnUrl },
                 { "vnp_IpAddr", "127.0.0.1" }, // Địa chỉ IP của người dùng
-                { "vnp_CreateDate", DateTime.UtcNow.ToString("yyyyMMddHHmmss") }
+                { "vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss") }
             };
 
             // Sắp xếp các tham số theo thứ tự ABC

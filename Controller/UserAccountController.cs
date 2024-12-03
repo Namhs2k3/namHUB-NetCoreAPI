@@ -45,8 +45,8 @@ namespace namHub_FastFood.Controller
                 Salt = salt,
                 Email = request.Email,
                 FullName = request.FullName,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now,
                 EmailVerified = false, // Đặt trạng thái xác thực email là false
                 EmailVerificationCode = emailVerificationCode.Trim() // Lưu mã xác thực email
             };
@@ -90,10 +90,20 @@ namespace namHub_FastFood.Controller
             // Log giá trị để kiểm tra
             Console.WriteLine($"User ID: {userId}, Code: {code}, Stored Code: {user?.EmailVerificationCode}, User : {user}");
 
-            if (user == null || user.EmailVerificationCode.Trim() != code)
+            if (user == null)
             {
-                return BadRequest("Invalid verification link.");
+                return BadRequest("Không Tìm Thấy Người Dùng!");
             }
+            if (string.IsNullOrWhiteSpace(user.EmailVerificationCode))
+            {
+                return BadRequest("Bạn đã xác thực rồi!");
+            }
+
+            if ( user.EmailVerificationCode.Trim() != code)
+            {
+                return BadRequest("Link không còn hiệu lực nữa, hãy dùng link mới nhất!");
+            }
+
 
             user.EmailVerified = true;
             user.EmailVerificationCode = null; // Xóa mã xác thực sau khi đã xác thực
@@ -113,7 +123,7 @@ namespace namHub_FastFood.Controller
 
             // Tạo mã xác thực
             var resetToken = Guid.NewGuid().ToString("N");
-            var expiresAt = DateTime.UtcNow.AddHours(1); // Thay đổi thời gian hết hạn theo yêu cầu
+            var expiresAt = DateTime.Now.AddHours(1); // Thay đổi thời gian hết hạn theo yêu cầu
 
             // Lưu mã xác thực vào cơ sở dữ liệu
             var resetPasswordToken = new ResetPasswordToken
@@ -121,7 +131,7 @@ namespace namHub_FastFood.Controller
                 UserId = user.UserId,
                 Token = resetToken,
                 ExpiresAt = expiresAt,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
             _context.ResetPasswordTokens.Add(resetPasswordToken);
             await _context.SaveChangesAsync();
@@ -145,7 +155,7 @@ namespace namHub_FastFood.Controller
         public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
         {
             var authToken = await _context.ResetPasswordTokens
-                .SingleOrDefaultAsync(t => t.Token == request.Token && t.ExpiresAt > DateTime.UtcNow);
+                .SingleOrDefaultAsync(t => t.Token == request.Token && t.ExpiresAt > DateTime.Now);
 
             if (authToken == null)
             {

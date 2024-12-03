@@ -85,9 +85,10 @@ builder.Services.AddSwaggerGen(c =>
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         In = ParameterLocation.Header,
-        Description = "Vui lòng nhập token vào đây theo định dạng này (\"Bearer {token}\")",
+        Description = "Vui lòng nhập token vào đây theo định dạng này (\"{token}\")",
         Name = "Authorization",
-        Type = SecuritySchemeType.ApiKey,
+        Type = SecuritySchemeType.Http,
+        BearerFormat = "JWT",
         Scheme = "Bearer"
     });
 

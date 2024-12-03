@@ -1,6 +1,14 @@
 {
   "Files": [
     {
+      "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\307326692_1506512349780432_6814099777055022906_n.jpg",
+      "PackagePath": "staticwebassets\\images\\307326692_1506512349780432_6814099777055022906_n.jpg"
+    },
+    {
+      "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\BÁO CÁO TIẾN ĐỘ NGÀY 29.11.xlsx",
+      "PackagePath": "staticwebassets\\images\\BÁO CÁO TIẾN ĐỘ NGÀY 29.11.xlsx"
+    },
+    {
       "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\Corgy.jpg",
       "PackagePath": "staticwebassets\\images\\Corgy.jpg"
     },
@@ -37,8 +45,16 @@
       "PackagePath": "staticwebassets\\images\\valorant-clove-3840x2160-16044.jpeg"
     },
     {
+      "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\z4658856506768_46ab292de32b33d1d120172c6e76a9eb.jpg",
+      "PackagePath": "staticwebassets\\images\\z4658856506768_46ab292de32b33d1d120172c6e76a9eb.jpg"
+    },
+    {
       "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\z4717753171385_a89926999ae292fbef71c5f2199c5919.jpg",
       "PackagePath": "staticwebassets\\images\\z4717753171385_a89926999ae292fbef71c5f2199c5919.jpg"
+    },
+    {
+      "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\z5556592902640_9f1795a6c1caeda1290f55e939c16786.jpg",
+      "PackagePath": "staticwebassets\\images\\z5556592902640_9f1795a6c1caeda1290f55e939c16786.jpg"
     },
     {
       "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.namHub-FastFood.props",

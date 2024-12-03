@@ -79,7 +79,7 @@ namespace namHub_FastFood.Controller.USER
                 {
                     var coupon = await _context.DiscountCodes
                         .FirstOrDefaultAsync(c => c.Code == request.CouponCode && c.IsActive &&
-                                                  c.StartDate <= DateTime.UtcNow && c.EndDate >= DateTime.UtcNow &&
+                                                  c.StartDate <= DateTime.Now && c.EndDate >= DateTime.Now &&
                                                   ((!c.IsSingleUse && c.CurrentUsageCount < c.MaxUsageCount) || (c.IsSingleUse && c.CurrentUsageCount == 0)));
 
                     if (coupon == null)
@@ -110,7 +110,7 @@ namespace namHub_FastFood.Controller.USER
                 var newOrder = new Order
                 {
                     CustomerId = customer.CustomerId,
-                    OrderDate = DateTime.UtcNow,
+                    OrderDate = DateTime.Now,
                     Status = "Pending",
                     TotalAmount = totalAmount,
                     DiscountCodeUsed = request.CouponCode,
@@ -145,7 +145,7 @@ namespace namHub_FastFood.Controller.USER
                     var payment = new Payment
                     {
                         OrderId = newOrder.OrderId,
-                        PaymentDate = DateTime.UtcNow,
+                        PaymentDate = DateTime.Now,
                         PaymentMethod = "VNPay",
                         Amount = totalAfterDiscount,
                         PaymentStatus = "Pending"
@@ -162,7 +162,7 @@ namespace namHub_FastFood.Controller.USER
                     {
                         OrderId = newOrder.OrderId,
                         Status = "Pending",
-                        StatusDate = DateTime.UtcNow,
+                        StatusDate = DateTime.Now,
                         UpdatedBy = "System via VNPayment"
                     };
                     _context.OrderStatusHistories.Add(orderStatusHistory);
@@ -190,7 +190,7 @@ namespace namHub_FastFood.Controller.USER
                     var payment = new Payment
                     {
                         OrderId = newOrder.OrderId,
-                        PaymentDate = DateTime.UtcNow,
+                        PaymentDate = DateTime.Now,
                         PaymentMethod = "Cash",
                         Amount = totalAfterDiscount,
                         PaymentStatus = "Pending"
@@ -204,7 +204,7 @@ namespace namHub_FastFood.Controller.USER
                     {
                         OrderId = newOrder.OrderId,
                         Status = "Pending",
-                        StatusDate = DateTime.UtcNow,
+                        StatusDate = DateTime.Now,
                         UpdatedBy = "System via Cash Payment"
                     };
                     _context.OrderStatusHistories.Add(orderStatusHistory);
@@ -236,7 +236,7 @@ namespace namHub_FastFood.Controller.USER
                             {
                                 DiscountId = couponToUpdate.DiscountId,
                                 CustomerId = customer.CustomerId,
-                                UsedAt = DateTime.UtcNow
+                                UsedAt = DateTime.Now
                             };
 
                             _context.UsedDiscounts.Add(usedDiscount);

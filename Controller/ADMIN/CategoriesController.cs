@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using namHub_FastFood.Models;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 
 namespace namHub_FastFood.Controller.ADMIN
 {
@@ -32,12 +33,23 @@ namespace namHub_FastFood.Controller.ADMIN
 
         // Dùng để xuất ra danh sách Categories để lọc, tìm kiếm
         [HttpGet("get-categories-list")]
-        public async Task<IActionResult> GetCategories()
+        public async Task<IActionResult> GetCategories(int? id, string? name)
         {
             // Tạo URL đầy đủ (base URL + đường dẫn hình ảnh)
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
 
-            var categories = await _context.Categories
+            var cate = _context.Categories.AsQueryable();
+
+            if (id.HasValue && id.Value != 0)
+            {
+                cate = cate.Where(p => p.CategoryId == id.Value);
+            }
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                cate = cate.Where(p => p.CategoryName.Contains(name));
+            }
+
+            var categories = await cate
                 .Select(c => new //phải có từ khóa "new"
                 {
                     CategoryID = c.CategoryId,
@@ -61,10 +73,24 @@ namespace namHub_FastFood.Controller.ADMIN
                 return BadRequest(ModelState);
             }
 
+            var duplicateCate = await _context.Categories
+                                                    .AnyAsync(p => p.CategoryName == myCategory.CategoryName);
+            if (duplicateCate)
+            {
+                return BadRequest("Tên danh mục đã tồn tại!");
+            }
+
             // Kiểm tra xem có file ảnh hay không
             if (myCategory.imgFile == null || myCategory.imgFile.Length == 0)
             {
-                return BadRequest("No image uploaded.");
+                return BadRequest("Vui Lòng Chọn Ảnh!");
+            }
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+            var extension = Path.GetExtension(myCategory.imgFile.FileName).ToLower();
+            if (!allowedExtensions.Contains(extension))
+            {
+                return BadRequest("Chỉ hỗ trợ các định dạng ảnh: .jpg, .jpeg, .png, .gif.");
             }
 
             // Lưu file ảnh
@@ -81,7 +107,8 @@ namespace namHub_FastFood.Controller.ADMIN
             {
                 CategoryName = myCategory.CategoryName,
                 Description = myCategory.CategoryDescription,
-                ImgUrl = $"/images/{fileName}"
+                ImgUrl = $"/images/{fileName}",
+                Keywords = myCategory.keywords,
             };
 
             // Thêm vào cơ sở dữ liệu
@@ -109,25 +136,38 @@ namespace namHub_FastFood.Controller.ADMIN
                 return BadRequest(ModelState); // Trả về lỗi 400 nếu dữ liệu không hợp lệ
             }
 
-            // Kiểm tra xem có file ảnh hay không
-            if (myCategory.imgFile == null || myCategory.imgFile.Length == 0)
+            var duplicateCate = await _context.Categories
+                                                    .AnyAsync(p => p.CategoryName == myCategory.CategoryName && p.CategoryId != id);
+            if (duplicateCate)
             {
-                return BadRequest("No image uploaded.");
+                return BadRequest("Tên danh mục đã tồn tại!");
             }
 
-            // Lưu file ảnh
-            var fileName = Path.GetFileName(myCategory.imgFile.FileName);
-            var filePath = Path.Combine(_uploadFolder, fileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
+            // Kiểm tra xem có file ảnh mới hay không
+            if (myCategory.imgFile != null && myCategory.imgFile.Length > 0)
             {
-                await myCategory.imgFile.CopyToAsync(stream);
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+                var extension = Path.GetExtension(myCategory.imgFile.FileName).ToLower();
+                if (!allowedExtensions.Contains(extension))
+                {
+                    return BadRequest("Chỉ hỗ trợ các định dạng ảnh: .jpg, .jpeg, .png, .gif.");
+                }
+                // Lưu file ảnh
+                var fileName = Path.GetFileName(myCategory.imgFile.FileName);
+                var filePath = Path.Combine(_uploadFolder, fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await myCategory.imgFile.CopyToAsync(stream);
+                }
+
+                // Cập nhật ImageUrl nếu có ảnh mới
+                category.ImgUrl = $"/images/{fileName}";
             }
 
             // Cập nhật thuộc tính của danh mục
             category.CategoryName = myCategory.CategoryName;
             category.Description = myCategory.CategoryDescription;
-            category.ImgUrl = $"/images/{fileName}";
             category.UpdatedAt = DateTime.Now; // Cập nhật thời gian sửa đổi
             category.Keywords = myCategory.keywords;
 

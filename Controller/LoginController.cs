@@ -7,6 +7,7 @@ using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace namHub_FastFood.Controller
@@ -78,8 +79,93 @@ namespace namHub_FastFood.Controller
                 Expires = DateTime.Now.AddMinutes(60)
             });
 
-            return Ok(new { token = tokenString });
+            var refreshToken = new RefreshToken
+            {
+                Token = GenerateRefreshToken(),
+                Expires = DateTime.Now.AddDays(7), // Refresh token có hiệu lực 7 ngày
+                IsUsed = false,
+                IsRevoked = false,
+                UserId = user.UserId
+            };
+
+            _context.RefreshTokens.Add(refreshToken);
+            await _context.SaveChangesAsync();
+
+
+            return Ok(new { 
+                token = tokenString,
+                refreshToken = refreshToken.Token
+            });
         }
+
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+        {
+            var storedToken = await _context.RefreshTokens
+                .Include(rt => rt.User)
+                .FirstOrDefaultAsync(rt => rt.Token == request.Token);
+
+            if (storedToken == null || storedToken.IsUsed || storedToken.IsRevoked || storedToken.Expires < DateTime.Now)
+            {
+                return Unauthorized("Refresh Token không hợp lệ hoặc đã hết hạn sử dụng!");
+            }
+
+            // Đánh dấu refresh token này là đã sử dụng
+            storedToken.IsUsed = true;
+            await _context.SaveChangesAsync();
+
+            // Tạo access token mới
+            var claims = new List<Claim>
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, storedToken.User.Username),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(ClaimTypes.Name, storedToken.User.Username),
+                new Claim("user_id", storedToken.User.UserId.ToString())
+            };
+
+            // Thêm roles nếu cần
+            var roles = await _context.UserRoles
+                .Where(ur => ur.UserId == storedToken.User.UserId)
+                .Select(ur => ur.Role.RoleName)
+                .ToListAsync();
+
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var newToken = new JwtSecurityToken(
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.Now.AddMinutes(60),
+                signingCredentials: creds);
+
+            var tokenString = new JwtSecurityTokenHandler().WriteToken(newToken);
+
+            // Tạo refresh token mới
+            var newRefreshToken = new RefreshToken
+            {
+                Token = GenerateRefreshToken(),
+                Expires = DateTime.Now.AddDays(7),
+                IsUsed = false,
+                IsRevoked = false,
+                UserId = storedToken.UserId
+            };
+
+            _context.RefreshTokens.Add(newRefreshToken);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                token = tokenString,
+                refreshToken = newRefreshToken.Token
+            });
+        }
+
         private bool VerifyPassword(string password, string storedHash, string storedSalt)
         {
             using (var hmac = new System.Security.Cryptography.HMACSHA256(Encoding.UTF8.GetBytes(storedSalt)))
@@ -92,6 +178,18 @@ namespace namHub_FastFood.Controller
                 return storedHashBytes.SequenceEqual(computedHash);
             }
         }
+
+        private string GenerateRefreshToken()
+        {
+            var randomBytes = new byte[32];
+            RandomNumberGenerator.Fill(randomBytes); // Phương thức mới để tạo số ngẫu nhiên
+            return Convert.ToBase64String(randomBytes);
+        }
+
+    }
+    public class RefreshTokenRequest
+    {
+        public string Token { get; set; }
     }
 
     public class UserLoginRequest

@@ -91,7 +91,7 @@ namespace namHub_FastFood.Controller.USER
                                 payment.PaymentStatus = "Completed";
                                 payment.TransactionId = vnpayTranIdStr;
                                 payment.VnPayResponse = vnp_SecureHash;
-                                payment.PaymentDate = DateTime.UtcNow;
+                                payment.PaymentDate = DateTime.Now;
 
                                 _context.Payments.Update(payment);
 
@@ -122,7 +122,7 @@ namespace namHub_FastFood.Controller.USER
                                         {
                                             DiscountId = discountCode.DiscountId,
                                             CustomerId = order.CustomerId.Value,
-                                            UsedAt = DateTime.UtcNow
+                                            UsedAt = DateTime.Now
                                         };
 
                                         _context.UsedDiscounts.Add(usedDiscount);
@@ -169,7 +169,7 @@ namespace namHub_FastFood.Controller.USER
                             {
                                 payment.PaymentStatus = "Failed";
                                 payment.VnPayResponse = vnp_SecureHash;
-                                payment.PaymentDate = DateTime.UtcNow;
+                                payment.PaymentDate = DateTime.Now;
 
                                 _context.Payments.Update(payment);
                                 // Cập nhật đơn hàng
@@ -179,7 +179,7 @@ namespace namHub_FastFood.Controller.USER
                                 {
                                     OrderId = order.OrderId,
                                     Status = "Failed",
-                                    StatusDate = DateTime.UtcNow,
+                                    StatusDate = DateTime.Now,
                                     UpdatedBy = "VNPay"
                                 };
                                 _context.OrderStatusHistories.Add(orderStatusHistory);

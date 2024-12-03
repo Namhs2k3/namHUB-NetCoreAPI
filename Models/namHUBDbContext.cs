@@ -49,6 +49,8 @@ public partial class namHUBDbContext : DbContext
 
     public virtual DbSet<Product> Products { get; set; }
 
+    public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
+
     public virtual DbSet<ResetPasswordToken> ResetPasswordTokens { get; set; }
 
     public virtual DbSet<Role> Roles { get; set; }
@@ -262,6 +264,15 @@ public partial class namHUBDbContext : DbContext
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(getdate())");
 
             entity.HasOne(d => d.Category).WithMany(p => p.Products).HasConstraintName("FK__Products__catego__6C190EBB");
+        });
+
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__RefreshT__3214EC075B3A1FA1");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.User).WithMany(p => p.RefreshTokens).HasConstraintName("FK__RefreshTo__UserI__373B3228");
         });
 
         modelBuilder.Entity<ResetPasswordToken>(entity =>

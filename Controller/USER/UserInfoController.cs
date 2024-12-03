@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using namHub_FastFood.Models;
+using System.Linq;
 
 namespace namHub_FastFood.Controller.USER
 {
@@ -11,10 +12,12 @@ namespace namHub_FastFood.Controller.USER
     public class UserInfoController : ControllerBase
     {
         public readonly namHUBDbContext _context;
+        private readonly IEmailService _emailService;
         private readonly string _uploadFolder;
-        public UserInfoController(namHUBDbContext dbContext)
+        public UserInfoController(namHUBDbContext dbContext, IEmailService emailService)
         {
             _context = dbContext;
+            _emailService = emailService;
 
             // Đường dẫn thư mục upload hình ảnh (có thể là thư mục trong wwwroot)
             _uploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
@@ -24,6 +27,7 @@ namespace namHub_FastFood.Controller.USER
             {
                 Directory.CreateDirectory(_uploadFolder);
             }
+            _emailService = emailService;
         }
 
         [Authorize(Roles = "ADMIN,EMPLOYEE,DELIVER,USER")]
@@ -83,17 +87,16 @@ namespace namHub_FastFood.Controller.USER
         [HttpPost("add-info")]
         public async Task<IActionResult> AddCusInfo([FromForm] UpdateCustomerInfoDto model)
         {
+            // Kiểm tra dữ liệu đầu vào
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
             // Lấy thông tin customer id từ claim của token
             var userId = GetUserIdFromClaims();
             if (userId == null)
             {
                 return Unauthorized("Hãy đăng nhập để thực hiện cập nhật thông tin!");
-            }
-
-            // Kiểm tra dữ liệu đầu vào
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
             }
 
             // Kiểm tra xem khách hàng đã tồn tại hay chưa
@@ -110,6 +113,12 @@ namespace namHub_FastFood.Controller.USER
             }
 
             // Lưu file ảnh
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+            var extension = Path.GetExtension(model.UserImageURL.FileName).ToLower();
+            if (!allowedExtensions.Contains(extension))
+            {
+                return BadRequest("Chỉ hỗ trợ các định dạng ảnh: .jpg, .jpeg, .png, .gif.");
+            }
             var fileName = Path.GetFileName(model.UserImageURL.FileName);
             var filePath = Path.Combine(_uploadFolder, fileName);
 
@@ -131,7 +140,7 @@ namespace namHub_FastFood.Controller.USER
             {
                 return NotFound("Người dùng ko tồn tại!");
             }
-            exitingUser.UpdatedAt = DateTime.UtcNow;
+            exitingUser.UpdatedAt = DateTime.Now;
             exitingUser.FullName = model.FullName;
 
             // Lưu cập nhật người dùng
@@ -143,8 +152,8 @@ namespace namHub_FastFood.Controller.USER
                 FullName = model.FullName,
                 Email = exitingUser.Email,
                 Phone = model.Phone,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now,
                 UserId = userId.Value,
                 UserImage = $"/images/{fileName}",
             };
@@ -167,6 +176,12 @@ namespace namHub_FastFood.Controller.USER
                 return Unauthorized("Hãy đăng nhập để thực hiện cập nhật thông tin!");
             }
 
+            // Kiểm tra dữ liệu đầu vào
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             // Tìm khách hàng
             var customer = await _context.Customers
                 .Include(c => c.Addresses) // Tải trước các địa chỉ của khách hàng
@@ -182,26 +197,21 @@ namespace namHub_FastFood.Controller.USER
             {
                 return NotFound("Người dùng ko tồn tại!");
             }
-
-            // Cập nhật thông tin cho người dùng
-            exitingUser.UpdatedAt = DateTime.UtcNow;
-            exitingUser.FullName = model.FullName ?? exitingUser.FullName;
-            exitingUser.Email = model.Email ?? exitingUser.Email;
-
-            // Lưu thay đổi thông tin người dùng
-            // Chỉ cần gọi 1 lần ở cuối phương thức là đc rồi, để đảm bảo hiệu suất tốt hơn
-            // Nhưng như thế này cũng đc, chỉ là hiệu suất ko tốt bằng và ko toàn vẹn (lỡ cái này lưu đc nhưng ở dưới ko đc)
-            await _context.SaveChangesAsync();
-
-            // Kiểm tra dữ liệu đầu vào
-            if (!ModelState.IsValid)
+            var existingEmail = await _context.Users.FirstOrDefaultAsync(u => u.Email == model.Email && u.UserId != userId.Value);
+            if(existingEmail != null)
             {
-                return BadRequest(ModelState);
+                return BadRequest("Email Này Đã Được Đăng Ký Bởi Người Dùng Khác");
             }
 
             // Kiểm tra xem có file ảnh hay không
             if (model.UserImageURL != null && model.UserImageURL.Length > 0)
             {
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+                var extension = Path.GetExtension(model.UserImageURL.FileName).ToLower();
+                if (!allowedExtensions.Contains(extension))
+                {
+                    return BadRequest("Chỉ hỗ trợ các định dạng ảnh: .jpg, .jpeg, .png, .gif.");
+                }
                 var fileName = Path.GetFileName(model.UserImageURL.FileName);
                 var filePath = Path.Combine(_uploadFolder, fileName);
 
@@ -223,9 +233,39 @@ namespace namHub_FastFood.Controller.USER
             customer.FullName = model.FullName ?? customer.FullName;
             customer.Phone = model.Phone ?? customer.Phone;
             customer.Email = model.Email ?? customer.Email;
-            customer.UpdatedAt = DateTime.UtcNow;
+            customer.UpdatedAt = DateTime.Now;
+
+            // Cập nhật thông tin cho người dùng
+            exitingUser.UpdatedAt = DateTime.Now;
+            exitingUser.FullName = model.FullName ?? exitingUser.FullName;
+            if(!string.IsNullOrEmpty(model.Email) && model.Email.ToLower() != exitingUser.Email.ToLower())
+            {
+                // Tạo mã xác thực email
+                var emailVerificationCode = Guid.NewGuid().ToString("N");
+
+                exitingUser.Email = model.Email ?? exitingUser.Email;
+                exitingUser.EmailVerified = false;
+                exitingUser.EmailVerificationCode = emailVerificationCode;
+
+                // Tạo liên kết xác thực email
+                var verificationLink = Url.Action(
+                    "VerifyEmail",
+                    "UserAccount",
+                    new { userId = userId.Value, code = emailVerificationCode },
+                    Request.Scheme
+                );
+
+                // Gửi email xác thực
+                await _emailService.SendEmailAsync(
+                    model.Email,
+                    "Xác thực email",
+                    $"Vui lòng xác thực email của bạn bằng cách nhấp vào liên kết sau: {verificationLink}"
+                );
+            }
+            
 
             await _context.SaveChangesAsync();
+
             return Ok("Cập nhật thông tin thành công.");
         }
 
@@ -320,8 +360,8 @@ namespace namHub_FastFood.Controller.USER
                 IsDefault = userAddress.IsDefault,
                 PostalCode = userAddress.PostalCode,
                 Country = userAddress.Country,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now,
             };
 
             _context.Addresses.Add(newUserAddress);
@@ -370,7 +410,7 @@ namespace namHub_FastFood.Controller.USER
                 return NotFound("Địa chỉ ko tồn tại!");
             }
 
-            exitingAddresses.UpdatedAt = DateTime.UtcNow;
+            exitingAddresses.UpdatedAt = DateTime.Now;
             exitingAddresses.AddressLine1 = userAddress.AddressLine1;
             exitingAddresses.AddressLine2 = userAddress.AddressLine2 ?? "";
             exitingAddresses.City = userAddress.City;

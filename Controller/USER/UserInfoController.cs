@@ -31,7 +31,46 @@ namespace namHub_FastFood.Controller.USER
         }
 
         [Authorize(Roles = "ADMIN,EMPLOYEE,DELIVER,USER")]
-        [HttpGet("get-info")]
+        [HttpGet("get-user-info")]
+        public async Task<IActionResult> GetUserInfo()
+        {
+            // Lấy thông tin customer id từ claim của token
+            var userIdClaim = User.FindFirst("user_id")?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim))
+            {
+                return Unauthorized("Hãy đăng nhập để xem thông tin!");
+            }
+
+            int userId;
+            if (!int.TryParse(userIdClaim, out userId))
+            {
+                return BadRequest("Không thể lấy thông tin khách hàng!");
+            }
+
+            // Tìm user và tải trước các địa chỉ của họ
+            var user = await _context.Users
+                .FirstOrDefaultAsync(c => c.UserId == userId);
+
+            if (user == null)
+            {
+                return NotFound("Không tìm thấy người dùng.");
+            }
+
+            // Tạo đối tượng thông tin khách hàng
+            var userInfo = new
+            {
+                user?.UserId,
+                UserName = user?.Username,
+                user?.FullName,
+                user?.Email,
+            };
+
+            return Ok(userInfo);
+        }
+
+        [Authorize(Roles = "ADMIN,EMPLOYEE,DELIVER,USER")]
+        [HttpGet("get-customer-info")]
         public async Task<IActionResult> GetCusInfo()
         {
             // Lấy thông tin customer id từ claim của token

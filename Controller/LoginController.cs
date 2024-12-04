@@ -90,6 +90,7 @@ namespace namHub_FastFood.Controller
 
             _context.RefreshTokens.Add(refreshToken);
             await _context.SaveChangesAsync();
+            await RemoveUOERefreshToken(user.UserId);
 
 
             return Ok(new { 
@@ -158,6 +159,7 @@ namespace namHub_FastFood.Controller
 
             _context.RefreshTokens.Add(newRefreshToken);
             await _context.SaveChangesAsync();
+            await RemoveUOERefreshToken(storedToken.User.UserId);
 
             return Ok(new
             {
@@ -184,6 +186,29 @@ namespace namHub_FastFood.Controller
             var randomBytes = new byte[32];
             RandomNumberGenerator.Fill(randomBytes); // Phương thức mới để tạo số ngẫu nhiên
             return Convert.ToBase64String(randomBytes);
+        }
+
+        [HttpDelete("/delete-rft")]
+        public async Task<IActionResult> RemoveUOERefreshToken(int userId)
+        {
+            if (userId == null)
+            {
+                return BadRequest("Vui lòng đăng nhập để tiếp tục");
+            }
+
+            try
+            {
+                // Xóa các refresh token đã hết hạn hoặc đã sử dụng cho user hiện tại
+                await _context.RefreshTokens
+                    .Where(rf => rf.UserId == userId && (rf.Expires < DateTime.Now || rf.IsUsed == true))
+                    .ExecuteDeleteAsync(); // Nếu dùng EF Core 7.0 trở lên
+
+                return Ok("Đã Dọn Dẹp Refresh Token!");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Có lỗi xảy ra khi dọn dẹp refresh token");
+            }
         }
 
     }

@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "5Nxy5mqfqENgNXWx3/m/3pghmCG6WrCydL3EyASEnPY=",
+  "Hash": "5scEjE77aCibMup+/j+StGkQipeEVn+bOUA0gKBCpRg=",
   "Source": "namHub-FastFood",
   "BasePath": "_content/namHub-FastFood",
   "Mode": "Default",
@@ -148,6 +148,25 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\images\\dotnet_bot2.png"
+    },
+    {
+      "Identity": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\empty-orange-color-shopping-bag-260nw-1520795969_LE_auto_x2_LE_auto_x2.jpg",
+      "SourceId": "namHub-FastFood",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\",
+      "BasePath": "_content/namHub-FastFood",
+      "RelativePath": "images/empty-orange-color-shopping-bag-260nw-1520795969_LE_auto_x2_LE_auto_x2.jpg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\images\\empty-orange-color-shopping-bag-260nw-1520795969_LE_auto_x2_LE_auto_x2.jpg"
     },
     {
       "Identity": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\favicon_io.zip",

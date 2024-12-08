@@ -36,4 +36,10 @@ public partial class Banner
 
     [Column("updated_at", TypeName = "datetime")]
     public DateTime? UpdatedAt { get; set; }
+
+    [Column("startDate", TypeName = "datetime")]
+    public DateTime StartDate { get; set; }
+
+    [Column("endDate", TypeName = "datetime")]
+    public DateTime EndDate { get; set; }
 }

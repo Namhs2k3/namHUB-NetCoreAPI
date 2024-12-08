@@ -261,7 +261,7 @@ namespace namHub_FastFood.Controller.USER
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
 
             var banners = await _context.Banners
-                .Where(b => b.IsActive == true)
+                .Where(b => b.IsActive == true && b.StartDate <= DateTime.Now && b.EndDate >= DateTime.Now)
                 .Select(b => new
                 {
                     b.BannerId,
@@ -271,6 +271,8 @@ namespace namHub_FastFood.Controller.USER
                     b.DisplayOrder,
                     b.CreatedAt,
                     b.UpdatedAt,
+                    b.StartDate,
+                    b.EndDate,
                 }).OrderBy(b => b.DisplayOrder).ToListAsync();
 
             return Ok(banners);

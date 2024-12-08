@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using namHub_FastFood.Models;
+using System.Linq;
 
 namespace namHub_FastFood.Controller.ADMIN
 {
@@ -28,12 +29,18 @@ namespace namHub_FastFood.Controller.ADMIN
         }
 
         [HttpGet("get-banner-list-for-admin")]
-        public async Task<IActionResult> GetBannerList()
+        public async Task<IActionResult> GetBannerList(int? id)
         {
             // Tạo URL đầy đủ (base URL + đường dẫn hình ảnh)
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var bannerQuery = _context.Banners.AsQueryable();
 
-            var banners = await _context.Banners
+            if (id.HasValue)
+            {
+                bannerQuery = bannerQuery.Where(b => b.BannerId == id.Value);
+            }
+
+            var banners = await bannerQuery
                 .Select(b => new
                 {
                     b.BannerId,
@@ -44,6 +51,8 @@ namespace namHub_FastFood.Controller.ADMIN
                     b.IsActive,
                     b.CreatedAt,
                     b.UpdatedAt,
+                    b.StartDate,
+                    b.EndDate,
                 }).OrderBy(b => b.DisplayOrder).ToListAsync();
 
             return Ok(banners);
@@ -56,6 +65,12 @@ namespace namHub_FastFood.Controller.ADMIN
             {
                 return BadRequest(ModelState);
             }
+
+            if(banner.StartDate > banner.EndDate)
+            {
+                return BadRequest("Thời điểm bắt đầu ko đc lớn hơn thời điểm kết thúc!");
+            }
+
             // Kiểm tra xem có file ảnh hay không
             if (banner.imgFile == null || banner.imgFile.Length == 0)
             {
@@ -89,6 +104,8 @@ namespace namHub_FastFood.Controller.ADMIN
                 IsActive = banner.IsActive,
                 CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now,
+                StartDate = banner.StartDate,
+                EndDate = banner.EndDate,
             };
 
             _context.Banners.Add(newBanner);
@@ -113,9 +130,20 @@ namespace namHub_FastFood.Controller.ADMIN
                 return BadRequest(ModelState);
             }
 
-            // Nếu có file ảnh mới
+            if (banner.StartDate > banner.EndDate)
+            {
+                return BadRequest("Thời điểm bắt đầu ko đc lớn hơn thời điểm kết thúc!");
+            }
+
+            // Kiểm tra xem có file ảnh mới hay không
             if (banner.imgFile != null && banner.imgFile.Length > 0)
             {
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+                var extension = Path.GetExtension(banner.imgFile.FileName).ToLower();
+                if (!allowedExtensions.Contains(extension))
+                {
+                    return BadRequest("Chỉ hỗ trợ các định dạng ảnh: .jpg, .jpeg, .png, .gif.");
+                }
                 // Xóa file ảnh cũ nếu có
                 if (!string.IsNullOrEmpty(existingBanner.ImageUrl))
                 {
@@ -125,8 +153,7 @@ namespace namHub_FastFood.Controller.ADMIN
                         System.IO.File.Delete(oldFilePath);
                     }
                 }
-
-                // Lưu file ảnh mới
+                // Lưu file ảnh
                 var fileName = Path.GetFileName(banner.imgFile.FileName);
                 var filePath = Path.Combine(_uploadFolder, fileName);
 
@@ -135,6 +162,7 @@ namespace namHub_FastFood.Controller.ADMIN
                     await banner.imgFile.CopyToAsync(stream);
                 }
 
+                // Cập nhật ImageUrl nếu có ảnh mới
                 existingBanner.ImageUrl = $"/images/Banner_Home/{fileName}";
             }
 
@@ -155,6 +183,8 @@ namespace namHub_FastFood.Controller.ADMIN
             existingBanner.Link = banner.Link;
             existingBanner.IsActive = banner.IsActive;
             existingBanner.UpdatedAt = DateTime.Now;
+            existingBanner.StartDate = banner.StartDate;
+            existingBanner.EndDate = banner.EndDate;
 
             await _context.SaveChangesAsync();
 
@@ -194,9 +224,11 @@ namespace namHub_FastFood.Controller.ADMIN
     public class BannerDto
     {
         public string Title { get; set; }
-        public IFormFile imgFile { get; set; }
+        public IFormFile? imgFile { get; set; }
         public string? Link { get; set; }
         public int? DisplayOrder { get; set; }
         public bool? IsActive { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set;}
     }
 }

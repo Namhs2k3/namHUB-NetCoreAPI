@@ -115,6 +115,10 @@ namespace namHub_FastFood.Controller.ADMIN
                     ? ((myProduct.Price - myProduct.DiscountedPrice) / myProduct.Price) * 100
                     : 0;
             }
+            else
+            {
+                return BadRequest("Giá phải lớn hơn 0!");
+            }
 
             var product = new Product()
             {
@@ -127,7 +131,8 @@ namespace namHub_FastFood.Controller.ADMIN
                 ImageUrl = $"/images/{fileName}",
                 IsPopular = myProduct.IsPopular,
                 DiscountedPrice = myProduct.DiscountedPrice ?? myProduct.Price,
-                DiscountPercentage = discountPercentage
+                DiscountPercentage = discountPercentage,
+                Keywords = myProduct.keywords
             };
 
             _context.Products.Add(product);

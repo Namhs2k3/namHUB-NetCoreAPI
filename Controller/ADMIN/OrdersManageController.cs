@@ -18,10 +18,11 @@ namespace namHub_FastFood.Controller.ADMIN
         }
 
         [HttpGet("get-orders-list")]
+        [Authorize( Roles = "ADMIN, EMPLOYEE" )]
         public async Task<IActionResult> Get([FromQuery] string? status)
         {
             // Nếu status có giá trị, kiểm tra nếu status không phải là "Pending", "Completed" hoặc "Failed"
-            if (!string.IsNullOrEmpty(status) && !new[] { "Pending", "Completed", "Failed" }.Contains(status))
+            if (!string.IsNullOrEmpty(status) && !new[] { "Pending", "Completed", "Failed", "Preparing", "On Delivery", "Ready" }.Contains(status))
             {
                 return BadRequest("Invalid order status.");
             }
@@ -96,26 +97,37 @@ namespace namHub_FastFood.Controller.ADMIN
                     UpdatedAt = h.StatusDate.Value,
                     UpdatedBy = h.UpdatedBy ?? "Unknow User"
                 })
+                .OrderByDescending(h => h.UpdatedAt)
                 .ToListAsync();
 
             return Ok(orderHistory);
         }
+
         [Authorize(Roles = "ADMIN,EMPLOYEE,DELIVER")]
         [HttpPost("add-new-state-for-order-history/{orderId}")]
-        public async Task<IActionResult> AddNewState(int orderId, [FromBody]string status)
+        public async Task<IActionResult> AddNewState( int orderId, [FromBody] string status )
         {
-            // Kiểm tra nếu orderId có tồn tại trong Orders
-            var orderExists = await _context.Orders.AnyAsync(o => o.OrderId == orderId);
-            if (!orderExists)
+            if ( string.IsNullOrWhiteSpace( status ) )
             {
-                return NotFound(new { Message = "Order not found." });
+                return BadRequest( new { Message = "Status cannot be empty." } );
             }
 
-            var userId = int.Parse(User.FindFirst("user_id")?.Value);
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
-            var updatedBy = user?.Username ?? "Unknown User"; // Nếu không tìm thấy, gán giá trị mặc định
+            var userIdClaim = User.FindFirst( "user_id" )?.Value;
+            if ( string.IsNullOrEmpty( userIdClaim ) || !int.TryParse( userIdClaim, out var userId ) )
+            {
+                return Unauthorized( new { Message = "Invalid user." } );
+            }
 
-            // Lấy danh sách lịch sử đơn hàng dựa trên OrderId
+            var order = await _context.Orders.FirstOrDefaultAsync( o => o.OrderId == orderId );
+            if ( order == null )
+            {
+                return NotFound( new { Message = "Order not found." } );
+            }
+
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync( u => u.UserId == userId );
+            var updatedBy = user?.Username ?? "Unknown User";
+
+            // Cập nhật trạng thái đơn hàng
             var orderHistory = new OrderStatusHistory
             {
                 OrderId = orderId,
@@ -124,11 +136,20 @@ namespace namHub_FastFood.Controller.ADMIN
                 UpdatedBy = updatedBy,
             };
 
-            // Thêm và lưu vào database
-            _context.OrderStatusHistories.Add(orderHistory);
-            await _context.SaveChangesAsync();
+            order.Status = status;
 
-            return Ok(new { Message = "Order status updated successfully." });
+            // Lưu thay đổi vào database
+            _context.OrderStatusHistories.Add( orderHistory );
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                return Ok( new { Message = "Order status updated successfully." } );
+            }
+            catch ( Exception ex )
+            {
+                return StatusCode( 500, new { Message = "An error occurred.", Details = ex.Message } );
+            }
         }
     }
     public class OrderStatusHistoryDto

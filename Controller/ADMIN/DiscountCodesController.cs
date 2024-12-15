@@ -21,9 +21,16 @@ namespace namHub_FastFood.Controller.ADMIN
 
         [HttpGet("get-discount-codes")]
         [Authorize(Roles = "ADMIN")] // Chỉ admin mới có quyền truy cập
-        public async Task<IActionResult> GetDiscountCodes()
+        public async Task<IActionResult> GetDiscountCodes(int? id)
         {
-            var discountCodes = await _context.DiscountCodes
+            var dcQuery = _context.DiscountCodes.AsQueryable();
+
+            if (id.HasValue)
+            {
+                dcQuery = dcQuery.Where(dc => dc.DiscountId == id);
+            }
+
+            var discountCodes = await dcQuery
                 .Select(d => new
                 {
                     d.DiscountId,
@@ -38,6 +45,7 @@ namespace namHub_FastFood.Controller.ADMIN
                     d.IsSingleUse,
                     d.CreatedAt,
                     d.UpdatedAt,
+                    d.IsActive
                 })
                 .ToListAsync();
 
@@ -52,7 +60,7 @@ namespace namHub_FastFood.Controller.ADMIN
         // POST: api/DiscountCodes
         [HttpPost("create")]
         [Authorize(Roles = "ADMIN")] // Chỉ admin mới có quyền tạo mã giảm giá
-        public async Task<IActionResult> CreateDiscountCode([FromBody] DiscountCodeDto discountCodeDto)
+        public async Task<IActionResult> CreateDiscountCode([FromForm] DiscountCodeDto discountCodeDto)
         {
             if (!ModelState.IsValid)
             {
@@ -92,7 +100,7 @@ namespace namHub_FastFood.Controller.ADMIN
 
         [HttpPut("update/{discountCodeId}")]
         [Authorize(Roles = "ADMIN")] // Chỉ admin mới có quyền sửa mã giảm giá
-        public async Task<IActionResult> UpdateDiscountCode(int discountCodeId, [FromBody] DiscountCodeDto discountCodeDto)
+        public async Task<IActionResult> UpdateDiscountCode(int discountCodeId, [FromForm] DiscountCodeDto discountCodeDto)
         {
             if (!ModelState.IsValid)
             {

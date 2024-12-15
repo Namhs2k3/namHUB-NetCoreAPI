@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Azure.Core;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,73 +11,74 @@ using System.Text.RegularExpressions;
 
 namespace namHub_FastFood.Controller.USER
 {
-    [Route("api/[controller]")]
+    [Route( "api/[controller]" )]
     [ApiController]
     public class CustomerController : ControllerBase
     {
         public readonly namHUBDbContext _context;
         private readonly string _uploadFolder;
-        public CustomerController(namHUBDbContext dbContext)
+
+        public CustomerController( namHUBDbContext dbContext )
         {
             _context = dbContext;
 
             // Đường dẫn thư mục upload hình ảnh (có thể là thư mục trong wwwroot)
-            _uploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+            _uploadFolder = Path.Combine( Directory.GetCurrentDirectory(), "wwwroot", "images" );
 
             // Tạo thư mục nếu nó chưa tồn tại
-            if (!Directory.Exists(_uploadFolder))
+            if ( !Directory.Exists( _uploadFolder ) )
             {
-                Directory.CreateDirectory(_uploadFolder);
+                Directory.CreateDirectory( _uploadFolder );
             }
         }
 
         // Dùng để xuất ra danh sách Categories để lọc, tìm kiếm hoặc hiển thị danh sách ở trang chủ
-        [HttpGet("get-categories-list")]
+        [HttpGet( "get-categories-list" )]
         public async Task<IActionResult> GetCategories()
         {
             // Tạo URL đầy đủ (base URL + đường dẫn hình ảnh)
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
 
             var categories = await _context.Categories
-                .Select(c => new //phải có từ khóa "new"
+                .Select( c => new //phải có từ khóa "new"
                 {
                     CategoryID = c.CategoryId,
                     CategoryName = c.CategoryName,
                     ImgURL = $"{baseUrl}{c.ImgUrl}",
                     Description = c.Description,
-                })
+                } )
                 .ToListAsync();
 
-            return Ok(categories);
+            return Ok( categories );
         }
 
-        [Authorize(Roles = "ADMIN,EMPLOYEE,DELIVER,USER")]
-        [HttpGet("get-customer-orders")]
+        [Authorize( Roles = "ADMIN,EMPLOYEE,DELIVER,USER" )]
+        [HttpGet( "get-customer-orders" )]
         public async Task<IActionResult> GetCusOrders()
         {
             // Lấy thông tin customer id từ claim của token
             var userId = GetUserIdFromClaims();
-            if (userId == null)
+            if ( userId == null )
             {
-                return Unauthorized("Hãy đăng nhập để xem các đơn hàng của bạn!");
+                return Unauthorized( "Hãy đăng nhập để xem các đơn hàng của bạn!" );
             }
             var cusInfo = await _context.Customers
-                .Include(ci => ci.Orders)
-                .ThenInclude(o => o.OrderStatusHistories) // Tải trước OrderStatusHistories
-                .Include(ci => ci.Orders)
-                .ThenInclude(o => o.Payments) // Tải trước Payments
-                .Where( ci => ci.UserId == userId)
-                .Select(co => new
+                .Include( ci => ci.Orders )
+                .ThenInclude( o => o.OrderStatusHistories ) // Tải trước OrderStatusHistories
+                .Include( ci => ci.Orders )
+                .ThenInclude( o => o.Payments ) // Tải trước Payments
+                .Where( ci => ci.UserId == userId )
+                .Select( co => new
                 {
                     OrdersCount = co.Orders.Count, // Đếm số lượng đơn hàng của khách hàng
-                    Orders = co.Orders.Select(order => new // Lấy toàn bộ đơn hàng của khách hàng
+                    Orders = co.Orders.Select( order => new // Lấy toàn bộ đơn hàng của khách hàng
                     {
                         OrderId = order.OrderId,
                         Status = order.Status,
                         OrderDate = order.OrderDate,
                         TotalAmount = order.TotalAmount,
-                        OrderHistoryStatus = order.OrderStatusHistories.OrderByDescending(o => o.StatusDate).FirstOrDefault() != null
-                                             ? order.OrderStatusHistories.OrderByDescending(o => o.StatusDate).FirstOrDefault().Status
+                        OrderHistoryStatus = order.OrderStatusHistories.OrderByDescending( o => o.StatusDate ).FirstOrDefault() != null
+                                             ? order.OrderStatusHistories.OrderByDescending( o => o.StatusDate ).FirstOrDefault().Status
                                              : null,
                         OrderPayMethod = order.Payments.FirstOrDefault() != null
                                          ? order.Payments.FirstOrDefault().PaymentMethod
@@ -84,58 +86,75 @@ namespace namHub_FastFood.Controller.USER
                         OrderPayStatus = order.Payments.FirstOrDefault().PaymentStatus == "Completed" ? "Đã Thanh Toán" :
                                         order.Payments.FirstOrDefault().PaymentStatus == "Failed" ? "Thanh Toán Thất Bại" :
                                         "Chưa Thanh Toán"
-                    }).ToList() // Chuyển về danh sách đơn hàng
-                })
+                    } ).ToList() // Chuyển về danh sách đơn hàng
+                } )
                 .ToListAsync();
 
-            return Ok(cusInfo); // Trả về dữ liệu dạng JSON
+            return Ok( cusInfo ); // Trả về dữ liệu dạng JSON
         }
 
-        [Authorize(Roles = "ADMIN,EMPLOYEE,DELIVER,USER")]
-        [HttpGet("get-customer-orders-items/{orderID}")]
-        public async Task<IActionResult> GetCusOI(int orderID)
+        [Authorize( Roles = "ADMIN,EMPLOYEE,DELIVER,USER" )]
+        [HttpGet( "get-customer-orders-items/{orderID}" )]
+        public async Task<IActionResult> GetCusOI( int orderID )
         {
             // Lấy thông tin customer id từ claim của token
             var userId = GetUserIdFromClaims();
-            if (userId == null)
+            if ( userId == null )
             {
-                return Unauthorized("Hãy đăng nhập để xem chi tiết đơn hàng!");
+                return Unauthorized( "Hãy đăng nhập để xem chi tiết đơn hàng!" );
             }
 
             // Truy vấn thông tin sản phẩm trong đơn hàng của khách hàng
             var cusOItems = await _context.OrderItems
-                .Where(u => u.Order.Customer.UserId == userId && u.Order.OrderId == orderID)
-                .Select(oi => new
+                .Where( u => u.Order.Customer.UserId == userId && u.Order.OrderId == orderID )
+                .Select( oi => new
                 {
                     oi.OrderItemId,
                     ProductName = oi.Product.ProductName,
                     oi.UnitPrice,
                     oi.Quantity,
                     oi.TotalPrice,
-                })
+                } )
                 .ToListAsync();
 
             // Kiểm tra nếu không có dữ liệu
-            if (cusOItems == null || cusOItems.Count == 0)
+            if ( cusOItems == null || cusOItems.Count == 0 )
             {
-                return NotFound("Không có sản phẩm!");
+                return NotFound( "Không có sản phẩm!" );
             }
 
-            return Ok(cusOItems);
+            return Ok( cusOItems );
         }
 
         // Lấy danh sách mã giảm giá
-        [HttpGet("get-active-discount-codes-for-customer")]
+        [HttpGet( "get-active-discount-codes-for-customer" )]
+        [Authorize]
         public async Task<IActionResult> GetActiveDiscountCodes()
         {
-            var currentDate = DateTime.Now;
+            var userId = GetUserIdFromClaims();
+            if ( userId == null )
+            {
+                return NotFound( "Ko tìm thấy ng dùng!" );
+            }
+            var customer = await _context.Customers.FirstOrDefaultAsync( c => c.UserId == userId );
+            if ( customer == null )
+            {
+                return NotFound( "Ko tìm thấy khách hàng!" );
+            }
 
             var discountCodes = await _context.DiscountCodes
-                .Where(dc => dc.IsActive
-                    && dc.StartDate <= currentDate
-                    && dc.EndDate >= currentDate
-                    && ((!dc.IsSingleUse && dc.CurrentUsageCount < dc.MaxUsageCount) || (dc.IsSingleUse && dc.CurrentUsageCount == 0))) // Kiểm tra single use và max usage count
-                .Select(dc => new
+                .Where( c =>
+                                        c.IsActive &&
+                                        c.StartDate <= DateTime.Now &&
+                                        c.EndDate >= DateTime.Now &&
+                                        (
+                                            !c.IsSingleUse || // Không phải loại dùng một lần, hoặc...
+                                            !_context.UsedDiscounts.Any( ud => ud.DiscountId == c.DiscountId && ud.CustomerId == customer.CustomerId ) // Loại dùng một lần và user chưa sử dụng
+                                        ) &&
+                                        (
+                                            c.MaxUsageCount == null || c.CurrentUsageCount < c.MaxUsageCount // Chỉ kiểm tra số lần sử dụng nếu có MaxUsageCount
+                                        ) ) // Kiểm tra single use và max usage count
+                .Select( dc => new
                 {
                     DiscountId = dc.DiscountId,
                     Code = dc.Code,
@@ -148,68 +167,73 @@ namespace namHub_FastFood.Controller.USER
                     IsSingleUse = dc.IsSingleUse,
                     MaxUsageCount = dc.MaxUsageCount,
                     CurrentUsageCount = dc.CurrentUsageCount
-                })
+                } )
                 .ToListAsync();
 
-            return Ok(discountCodes);
+            return Ok( discountCodes );
         }
 
-        [HttpPost("apply-discount")]
+        // KO  XÀI NỮA
+        [HttpPost( "apply-discount" )]
         [Authorize]
-        public async Task<IActionResult> ApplyDiscount([FromBody] ApplyDiscountDto dto)
+        public async Task<IActionResult> ApplyDiscount( [FromBody] ApplyDiscountDto dto )
         {
             // Lấy customerId từ claims
-            var customerId = GetUserIdFromClaims();
-            if (customerId == null)
+            var userId = GetUserIdFromClaims();
+            if ( userId == null )
             {
-                return Unauthorized("Không tìm thấy thông tin người dùng.");
+                return Unauthorized( "Không tìm thấy thông tin người dùng." );
             }
+
+            var customer = await _context.Customers.FirstOrDefaultAsync( c => c.UserId == userId );
+
+            var customerId = customer?.CustomerId;
 
             // Tìm mã giảm giá trong cơ sở dữ liệu
             var discountCode = await _context.DiscountCodes
-                .FirstOrDefaultAsync(dc => dc.Code == dto.DiscountCode);
+                .FirstOrDefaultAsync( dc => dc.Code == dto.DiscountCode );
 
-            if (discountCode == null)
+            if ( discountCode == null )
             {
-                return NotFound("Mã giảm giá không tồn tại.");
+                return NotFound( "Mã giảm giá không tồn tại." );
             }
 
             // Kiểm tra xem mã giảm giá có còn hiệu lực không
-            if (!discountCode.IsActive)
+            if ( !discountCode.IsActive )
             {
-                return BadRequest("Mã giảm giá đã bị vô hiệu hóa.");
+                return BadRequest( "Mã giảm giá đã bị vô hiệu hóa." );
             }
 
             // Kiểm tra thời gian hiệu lực của mã giảm giá
             var currentDate = DateTime.Now;
-            if (currentDate < discountCode.StartDate || currentDate > discountCode.EndDate)
+            if ( currentDate < discountCode.StartDate || currentDate > discountCode.EndDate )
             {
-                return BadRequest("Mã giảm giá đã hết hạn sử dụng.");
+                return BadRequest( "Mã giảm giá đã hết hạn sử dụng." );
             }
 
             // Kiểm tra xem mã giảm giá đã hết số lần sử dụng chưa
-            if (discountCode.CurrentUsageCount >= discountCode.MaxUsageCount)
+            if ( discountCode.CurrentUsageCount >= discountCode.MaxUsageCount )
             {
-                return BadRequest("Mã giảm giá đã hết số lần sử dụng.");
+                return BadRequest( "Mã giảm giá đã hết số lần sử dụng." );
             }
 
             // Lấy tổng giá trị đơn hàng từ OrderId
             var orderTotalAmount = await _context.OrderItems
-                .Where(oi => oi.OrderId == dto.OrderId)
-                .SumAsync(oi => oi.Quantity * oi.UnitPrice);
+                .Where( oi => oi.OrderId == dto.OrderId )
+                .SumAsync( oi => oi.Quantity * oi.UnitPrice );
 
             // Kiểm tra điều kiện sử dụng mã giảm giá
-            if (orderTotalAmount < discountCode.MinOrderValue)
+            if ( orderTotalAmount < discountCode.MinOrderValue )
             {
-                return BadRequest("Tổng giá trị đơn hàng không đủ điều kiện để sử dụng mã giảm giá.");
+                return BadRequest( "Tổng giá trị đơn hàng không đủ điều kiện để sử dụng mã giảm giá." );
             }
 
             // Tính số tiền giảm giá
             decimal discountAmount = 0;
 
-            if (discountCode.DiscountType == "percent") // Nếu là giảm giá theo phần trăm
+            if ( discountCode.DiscountType == "percent" ) // Nếu là giảm giá theo phần trăm
             {
-                discountAmount = orderTotalAmount * (discountCode.DiscountValue / 100);
+                discountAmount = orderTotalAmount * ( discountCode.DiscountValue / 100 );
             }
             else // Nếu là giảm giá theo số tiền cố định
             {
@@ -217,19 +241,19 @@ namespace namHub_FastFood.Controller.USER
             }
 
             // Kiểm tra mã giảm giá có phải là mã sử dụng một lần không
-            if (discountCode.IsSingleUse)
+            if ( discountCode.IsSingleUse )
             {
                 var existingUsedDiscount = await _context.UsedDiscounts
-                    .FirstOrDefaultAsync(ud => ud.DiscountId == discountCode.DiscountId && ud.CustomerId == customerId);
+                    .FirstOrDefaultAsync( ud => ud.DiscountId == discountCode.DiscountId && ud.CustomerId == customerId );
 
-                if (existingUsedDiscount != null)
+                if ( existingUsedDiscount != null )
                 {
-                    return BadRequest("Mã giảm giá này đã được sử dụng.");
+                    return BadRequest( "Mã giảm giá này đã được sử dụng." );
                 }
             }
 
             // Tính số tiền cần thanh toán
-            decimal finalAmount = orderTotalAmount - discountAmount;
+            decimal finalAmount = orderTotalAmount - Math.Min( orderTotalAmount, discountAmount );
 
             // Tăng CurrentUsageCount lên 1
             discountCode.CurrentUsageCount += 1;
@@ -242,27 +266,27 @@ namespace namHub_FastFood.Controller.USER
                 CustomerId = customerId.Value,
                 UsedAt = DateTime.Now
             };
-            _context.UsedDiscounts.Add(usedDiscount);
+            _context.UsedDiscounts.Add( usedDiscount );
             await _context.SaveChangesAsync();
 
-            return Ok(new
+            return Ok( new
             {
                 DiscountCode = discountCode.Code,
                 orderTotalAmount = orderTotalAmount,
                 DiscountAmount = discountAmount,
                 FinalAmount = finalAmount
-            });
+            } );
         }
 
-        [HttpGet("get-banner-list")]
+        [HttpGet( "get-banner-list" )]
         public async Task<IActionResult> GetBannerList()
         {
             // Tạo URL đầy đủ (base URL + đường dẫn hình ảnh)
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
 
             var banners = await _context.Banners
-                .Where(b => b.IsActive == true && b.StartDate <= DateTime.Now && b.EndDate >= DateTime.Now)
-                .Select(b => new
+                .Where( b => b.IsActive == true && b.StartDate <= DateTime.Now && b.EndDate >= DateTime.Now )
+                .Select( b => new
                 {
                     b.BannerId,
                     b.Title,
@@ -273,17 +297,17 @@ namespace namHub_FastFood.Controller.USER
                     b.UpdatedAt,
                     b.StartDate,
                     b.EndDate,
-                }).OrderBy(b => b.DisplayOrder).ToListAsync();
+                } ).OrderBy( b => b.DisplayOrder ).ToListAsync();
 
-            return Ok(banners);
+            return Ok( banners );
         }
 
-        [HttpGet("get-popular-foods")]
+        [HttpGet( "get-popular-foods" )]
         public async Task<IActionResult> GetPopularFood()
         {
             var popularFoods = await _context.Products
-                .Where(p => p.IsPopular == true && p.IsHidden == false)
-                .Select(p=> new
+                .Where( p => p.IsPopular == true && p.IsHidden == false )
+                .Select( p => new
                 {
                     p.ProductId,
                     p.ProductName,
@@ -291,33 +315,33 @@ namespace namHub_FastFood.Controller.USER
                     p.ImageUrl,
                     Price = p.DiscountedPrice ?? p.Price,
                     discountPercentage = p.DiscountPercentage ?? 0,
-                }).ToListAsync();
+                } ).ToListAsync();
 
-            return Ok(popularFoods);
+            return Ok( popularFoods );
         }
 
-        [HttpGet("get-food-list")]
-        public async Task<IActionResult> GetFood([FromQuery] string? searchTerm, [FromQuery] int? categoryId)
+        [HttpGet( "get-food-list" )]
+        public async Task<IActionResult> GetFood( [FromQuery] string? searchTerm, [FromQuery] int? categoryId )
         {
             // Lọc sản phẩm theo IsHidden = false, theo danh mục và theo từ khóa tìm kiếm
             var foodsQuery = _context.Products
-                .Where(p => p.IsHidden == false);
+                .Where( p => p.IsHidden == false );
 
             // Nếu có tìm kiếm theo từ khóa, thêm điều kiện tìm kiếm
-            if (!string.IsNullOrEmpty(searchTerm))
+            if ( !string.IsNullOrEmpty( searchTerm ) )
             {
-                foodsQuery = foodsQuery.Where(p => p.ProductName.Contains(searchTerm));
+                foodsQuery = foodsQuery.Where( p => p.ProductName.Contains( searchTerm ) );
             }
 
             // Nếu có tìm kiếm theo danh mục, thêm điều kiện lọc danh mục
-            if (categoryId.HasValue)
+            if ( categoryId.HasValue )
             {
-                foodsQuery = foodsQuery.Where(p => p.CategoryId == categoryId.Value);
+                foodsQuery = foodsQuery.Where( p => p.CategoryId == categoryId.Value );
             }
 
             // Lấy dữ liệu từ truy vấn
-            var foods = await foodsQuery  
-                .Select(p => new
+            var foods = await foodsQuery
+                .Select( p => new
                 {
                     p.ProductId,
                     p.ProductName,
@@ -326,27 +350,27 @@ namespace namHub_FastFood.Controller.USER
                     p.CategoryId,
                     Price = p.DiscountedPrice ?? p.Price,
                     discountPercentage = p.DiscountPercentage ?? 0,
-                })
+                } )
                 .ToListAsync();
 
-            return Ok(foods);
+            return Ok( foods );
         }
 
-        [HttpPost("add-to-cart")]
+        [HttpPost( "add-to-cart" )]
         [Authorize]
-        public async Task<IActionResult> AddToCart(int foodId)
+        public async Task<IActionResult> AddToCart( int foodId )
         {
             var userId = GetUserIdFromClaims();
 
-            if(userId == null)
+            if ( userId == null )
             {
-                return BadRequest("Không tìm thấy người dùng!");
+                return BadRequest( "Không tìm thấy người dùng!" );
             }
 
-            var existingCart = await _context.Carts.FirstOrDefaultAsync(c => c.UserId == userId);
+            var existingCart = await _context.Carts.FirstOrDefaultAsync( c => c.UserId == userId );
 
-            int cartId =0;
-            if(existingCart == null)
+            int cartId = 0;
+            if ( existingCart == null )
             {
                 var newCart = new Cart
                 {
@@ -355,26 +379,25 @@ namespace namHub_FastFood.Controller.USER
                     UpdatedAt = DateTime.Now,
                 };
 
-                _context.Add(newCart);
+                _context.Add( newCart );
                 await _context.SaveChangesAsync();
                 cartId = newCart.CartId;
             }
-            else 
-            { 
+            else
+            {
                 existingCart.UpdatedAt = DateTime.Now;
                 cartId = existingCart.CartId;
             }
-                
 
-            var existingCartItem = await _context.CartItems.FirstOrDefaultAsync(ci => ci.ProductId == foodId && ci.CartId == cartId);
+            var existingCartItem = await _context.CartItems.FirstOrDefaultAsync( ci => ci.ProductId == foodId && ci.CartId == cartId );
 
-            var existingFood = await _context.Products.FirstOrDefaultAsync(f => f.ProductId == foodId);
-            if(existingFood == null)
+            var existingFood = await _context.Products.FirstOrDefaultAsync( f => f.ProductId == foodId );
+            if ( existingFood == null )
             {
-                return BadRequest("Món không tồn tại!");
+                return BadRequest( "Món không tồn tại!" );
             }
 
-            if (existingCartItem == null)
+            if ( existingCartItem == null )
             {
                 existingCartItem = new CartItem
                 {
@@ -384,7 +407,7 @@ namespace namHub_FastFood.Controller.USER
                     Price = existingFood.DiscountedPrice ?? existingFood.Price,
                 };
 
-                _context.Add(existingCartItem);
+                _context.Add( existingCartItem );
             }
             else
             {
@@ -395,31 +418,31 @@ namespace namHub_FastFood.Controller.USER
             }
 
             await _context.SaveChangesAsync();
-            return Ok(existingCartItem);
+            return Ok( existingCartItem );
         }
 
         [Authorize]
-        [HttpGet("get-cus-cart-items")]
+        [HttpGet( "get-cus-cart-items" )]
         public async Task<IActionResult> GetCusCartItems()
         {
             var userId = GetUserIdFromClaims();
-            if (userId == null)
+            if ( userId == null )
             {
-                return Unauthorized("Người dùng chưa đăng nhập!");
+                return Unauthorized( "Người dùng chưa đăng nhập!" );
             }
 
             var existingCart = await _context.Carts
-                                            .Include(c => c.CartItems) // Eager loading CartItems
-                                            .ThenInclude(ci => ci.Product) // Eager loading Product info (if needed)
-                                            .FirstOrDefaultAsync(c => c.UserId == userId);
+                                            .Include( c => c.CartItems ) // Eager loading CartItems
+                                            .ThenInclude( ci => ci.Product ) // Eager loading Product info (if needed)
+                                            .FirstOrDefaultAsync( c => c.UserId == userId );
 
-            if (existingCart == null)
+            if ( existingCart == null )
             {
-                return NotFound("Không tìm thấy thông tin giỏ hàng");
+                return NotFound( "Không tìm thấy thông tin giỏ hàng" );
             }
 
             var cartItems = existingCart.CartItems
-                .Select(ci => new
+                .Select( ci => new
                 {
                     ci.CartItemId,
                     ci.CartId,
@@ -431,141 +454,141 @@ namespace namHub_FastFood.Controller.USER
                     ci.Price,
                     DiscountedPrice = ci.Product.DiscountedPrice ?? ci.Price,
                     DiscountPercentage = ci.Product.DiscountPercentage ?? 0,
-                }).ToList();
+                } ).ToList();
 
-            return Ok(cartItems);
+            return Ok( cartItems );
         }
 
-
         [Authorize]
-        [HttpPost("increase-quantity")]
-        public async Task<IActionResult> IncreaseQuantity(int foodId)
+        [HttpPost( "increase-quantity" )]
+        public async Task<IActionResult> IncreaseQuantity( int foodId )
         {
             var userId = GetUserIdFromClaims();
-            if (userId == null)
+            if ( userId == null )
             {
-                return Unauthorized("Người dùng chưa đăng nhập!");
+                return Unauthorized( "Người dùng chưa đăng nhập!" );
             }
 
-            var existingCart = await _context.Carts.FirstOrDefaultAsync(c => c.UserId == userId);
-            if (existingCart == null)
+            var existingCart = await _context.Carts.FirstOrDefaultAsync( c => c.UserId == userId );
+            if ( existingCart == null )
             {
-                return NotFound("Không tìm thấy thông tin giỏ hàng");
+                return NotFound( "Không tìm thấy thông tin giỏ hàng" );
             }
 
-            var existingCartItem = await _context.CartItems.FirstOrDefaultAsync(p => p.ProductId == foodId && p.CartId == existingCart.CartId);
-            if (existingCartItem == null)
+            var existingCartItem = await _context.CartItems.FirstOrDefaultAsync( p => p.ProductId == foodId && p.CartId == existingCart.CartId );
+            if ( existingCartItem == null )
             {
-                return NotFound("Không tìm thấy sản phẩm trong giỏ hàng");
+                return NotFound( "Không tìm thấy sản phẩm trong giỏ hàng" );
             }
 
             existingCartItem.Quantity++;
             await _context.SaveChangesAsync();
 
-            return Ok(existingCartItem);
+            return Ok( existingCartItem );
         }
 
         [Authorize]
-        [HttpPost("decrease-quantity")]
-        public async Task<IActionResult> DecreaseQuantity(int foodId) // sửa lại DecreaseQuantity cho đúng
+        [HttpPost( "decrease-quantity" )]
+        public async Task<IActionResult> DecreaseQuantity( int foodId ) // sửa lại DecreaseQuantity cho đúng
         {
             var userId = GetUserIdFromClaims();
-            if (userId == null)
+            if ( userId == null )
             {
-                return Unauthorized("Người dùng chưa đăng nhập!");
+                return Unauthorized( "Người dùng chưa đăng nhập!" );
             }
 
-            var existingCart = await _context.Carts.FirstOrDefaultAsync(c => c.UserId == userId);
-            if (existingCart == null)
+            var existingCart = await _context.Carts.FirstOrDefaultAsync( c => c.UserId == userId );
+            if ( existingCart == null )
             {
-                return NotFound("Không tìm thấy thông tin giỏ hàng");
+                return NotFound( "Không tìm thấy thông tin giỏ hàng" );
             }
 
-            var existingCartItem = await _context.CartItems.FirstOrDefaultAsync(p => p.ProductId == foodId && p.CartId == existingCart.CartId);
+            var existingCartItem = await _context.CartItems.FirstOrDefaultAsync( p => p.ProductId == foodId && p.CartId == existingCart.CartId );
 
-            if (existingCartItem == null)
+            if ( existingCartItem == null )
             {
-                return NotFound("Không tìm thấy sản phẩm trong giỏ hàng");
+                return NotFound( "Không tìm thấy sản phẩm trong giỏ hàng" );
             }
 
             existingCartItem.Quantity--; // Giảm số lượng
 
-            if (existingCartItem.Quantity <= 0)
+            if ( existingCartItem.Quantity <= 0 )
             {
-                _context.CartItems.Remove(existingCartItem); // Xóa sản phẩm nếu số lượng là 0
+                _context.CartItems.Remove( existingCartItem ); // Xóa sản phẩm nếu số lượng là 0
             }
 
             await _context.SaveChangesAsync(); // Cập nhật thay đổi vào DB
-            return Ok(existingCartItem);
+            return Ok( existingCartItem );
         }
 
         [Authorize]
-        [HttpDelete("delete-cart-item")]
-        public async Task<IActionResult> DeleteCartItem(int foodId)
+        [HttpDelete( "delete-cart-item" )]
+        public async Task<IActionResult> DeleteCartItem( int foodId )
         {
             var userId = GetUserIdFromClaims();
-            if (userId == null)
+            if ( userId == null )
             {
-                return Unauthorized("Người dùng chưa đăng nhập!");
+                return Unauthorized( "Người dùng chưa đăng nhập!" );
             }
 
-            var existingCart = await _context.Carts.FirstOrDefaultAsync(c => c.UserId == userId);
-            if (existingCart == null)
+            var existingCart = await _context.Carts.FirstOrDefaultAsync( c => c.UserId == userId );
+            if ( existingCart == null )
             {
-                return NotFound("Không tìm thấy thông tin giỏ hàng");
+                return NotFound( "Không tìm thấy thông tin giỏ hàng" );
             }
 
-            var existingCartItem = await _context.CartItems.FirstOrDefaultAsync(p => p.ProductId == foodId && p.CartId == existingCart.CartId);
+            var existingCartItem = await _context.CartItems.FirstOrDefaultAsync( p => p.ProductId == foodId && p.CartId == existingCart.CartId );
 
-            if (existingCartItem == null)
+            if ( existingCartItem == null )
             {
-                return NotFound("Không tìm thấy sản phẩm trong giỏ hàng");
+                return NotFound( "Không tìm thấy sản phẩm trong giỏ hàng" );
             }
 
-            _context.CartItems.Remove(existingCartItem);
+            _context.CartItems.Remove( existingCartItem );
             await _context.SaveChangesAsync();
-            return Ok(new { message = "Sản phẩm đã được xóa khỏi giỏ hàng", productId = foodId });
+            return Ok( new { message = "Sản phẩm đã được xóa khỏi giỏ hàng", productId = foodId } );
         }
 
         [Authorize]
-        [HttpGet("get-cart-item-count")]
+        [HttpGet( "get-cart-item-count" )]
         public async Task<IActionResult> GetCartItemCount()
         {
             var userId = GetUserIdFromClaims();
-            if (userId == null)
+            if ( userId == null )
             {
-                return Unauthorized("Người dùng chưa đăng nhập!");
+                return Unauthorized( "Người dùng chưa đăng nhập!" );
             }
 
-            var existingCart = await _context.Carts.FirstOrDefaultAsync(c => c.UserId == userId);
-            if (existingCart == null)
+            var existingCart = await _context.Carts.FirstOrDefaultAsync( c => c.UserId == userId );
+            if ( existingCart == null )
             {
-                return Ok(0);
+                return Ok( 0 );
             }
 
-            var existingCartItemCount = await _context.CartItems.Where(ci => ci.CartId == existingCart.CartId).SumAsync(ci => ci.Quantity);
+            var existingCartItemCount = await _context.CartItems.Where( ci => ci.CartId == existingCart.CartId ).SumAsync( ci => ci.Quantity );
 
-            return Ok(existingCartItemCount);
+            return Ok( existingCartItemCount );
         }
 
         #region Các Hàm Thanh Toán Bị Thừa Không Dùng Đến
+
         [Authorize]
-        [HttpPost("checkout")]
-        public async Task<IActionResult> Checkout([FromBody] CheckoutRequest request)
+        [HttpPost( "checkout" )]
+        public async Task<IActionResult> Checkout( [FromBody] CheckoutRequest request )
         {
             var userId = GetUserIdFromClaims();
-            if (userId == null)
+            if ( userId == null )
             {
-                return Unauthorized("Người dùng chưa đăng nhập!");
+                return Unauthorized( "Người dùng chưa đăng nhập!" );
             }
 
             // Truy xuất Customer dựa trên userId
             var customer = await _context.Customers
-                .FirstOrDefaultAsync(c => c.UserId == userId.Value);
+                .FirstOrDefaultAsync( c => c.UserId == userId.Value );
 
-            if (customer == null)
+            if ( customer == null )
             {
-                return BadRequest("Không tìm thấy thông tin khách hàng. Vui lòng liên hệ hỗ trợ.");
+                return BadRequest( "Không tìm thấy thông tin khách hàng. Vui lòng liên hệ hỗ trợ." );
             }
 
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -574,51 +597,51 @@ namespace namHub_FastFood.Controller.USER
             {
                 // Lấy giỏ hàng của người dùng
                 var existingCart = await _context.Carts
-                    .Include(c => c.CartItems)
-                        .ThenInclude(ci => ci.Product)
-                    .FirstOrDefaultAsync(c => c.UserId == userId.Value);
+                    .Include( c => c.CartItems )
+                        .ThenInclude( ci => ci.Product )
+                    .FirstOrDefaultAsync( c => c.UserId == userId.Value );
 
-                if (existingCart == null || !existingCart.CartItems.Any())
+                if ( existingCart == null || !existingCart.CartItems.Any() )
                 {
-                    return BadRequest("Giỏ hàng của bạn đang trống!");
+                    return BadRequest( "Giỏ hàng của bạn đang trống!" );
                 }
 
                 // Tính tổng số tiền trong giỏ hàng
-                decimal totalAmount = existingCart.CartItems.Sum(ci => (ci.Product.DiscountedPrice ?? ci.Price) * ci.Quantity);
+                decimal totalAmount = existingCart.CartItems.Sum( ci => ( ci.Product.DiscountedPrice ?? ci.Price ) * ci.Quantity );
 
                 // Kiểm tra và áp dụng mã giảm giá (nếu có)
                 decimal discountAmount = 0;
                 decimal totalAfterDiscount = totalAmount;
 
-                if (!string.IsNullOrEmpty(request.CouponCode))
+                if ( !string.IsNullOrEmpty( request.CouponCode ) )
                 {
                     var coupon = await _context.DiscountCodes
-                        .FirstOrDefaultAsync(c => c.Code == request.CouponCode && c.IsActive &&
+                        .FirstOrDefaultAsync( c => c.Code == request.CouponCode && c.IsActive &&
                                                   c.StartDate <= DateTime.Now && c.EndDate >= DateTime.Now &&
-                                                  ((!c.IsSingleUse && c.CurrentUsageCount < c.MaxUsageCount) || (c.IsSingleUse && c.CurrentUsageCount == 0)));
+                                                  ( ( !c.IsSingleUse && c.CurrentUsageCount < c.MaxUsageCount ) || ( c.IsSingleUse && c.CurrentUsageCount == 0 ) ) );
 
-                    if (coupon == null)
+                    if ( coupon == null )
                     {
-                        return BadRequest("Mã giảm giá không hợp lệ hoặc đã hết hạn.");
+                        return BadRequest( "Mã giảm giá không hợp lệ hoặc đã hết hạn." );
                     }
 
-                    if (totalAmount < (coupon.MinOrderValue ?? 0))
+                    if ( totalAmount < ( coupon.MinOrderValue ?? 0 ) )
                     {
-                        return BadRequest($"Tổng đơn hàng phải từ {coupon.MinOrderValue} trở lên để áp dụng mã giảm giá này.");
+                        return BadRequest( $"Tổng đơn hàng phải từ {coupon.MinOrderValue} trở lên để áp dụng mã giảm giá này." );
                     }
 
                     // Tính toán giảm giá dựa trên loại mã giảm giá
-                    if (coupon.DiscountType.Equals("percent", StringComparison.OrdinalIgnoreCase))
+                    if ( coupon.DiscountType.Equals( "percent", StringComparison.OrdinalIgnoreCase ) )
                     {
-                        discountAmount = totalAmount * (coupon.DiscountValue / 100);
+                        discountAmount = totalAmount * ( coupon.DiscountValue / 100 );
                     }
-                    else if (coupon.DiscountType.Equals("amount", StringComparison.OrdinalIgnoreCase))
+                    else if ( coupon.DiscountType.Equals( "amount", StringComparison.OrdinalIgnoreCase ) )
                     {
                         discountAmount = coupon.DiscountValue;
                     }
 
                     // Đảm bảo giảm giá không vượt quá tổng đơn hàng
-                    discountAmount = Math.Min(discountAmount, totalAmount);
+                    discountAmount = Math.Min( discountAmount, totalAmount );
                     totalAfterDiscount = totalAmount - discountAmount;
                 }
 
@@ -634,11 +657,11 @@ namespace namHub_FastFood.Controller.USER
                 };
 
                 // Thêm đơn hàng mới vào cơ sở dữ liệu trước
-                _context.Orders.Add(newOrder);
+                _context.Orders.Add( newOrder );
                 await _context.SaveChangesAsync();
 
                 // Sau khi đơn hàng đã được lưu, lấy OrderId và gán cho OrderItems
-                foreach (var cartItem in existingCart.CartItems)
+                foreach ( var cartItem in existingCart.CartItems )
                 {
                     var orderItem = new OrderItem
                     {
@@ -647,15 +670,14 @@ namespace namHub_FastFood.Controller.USER
                         Quantity = cartItem.Quantity,
                         UnitPrice = cartItem.Product.DiscountedPrice ?? cartItem.Price
                     };
-                    _context.OrderItems.Add(orderItem);
+                    _context.OrderItems.Add( orderItem );
                 }
 
                 // Lưu các OrderItems vào cơ sở dữ liệu
                 await _context.SaveChangesAsync();
 
-
                 // Xử lý thanh toán dựa trên phương thức
-                if (request.PaymentMethod.Equals("VNPay", StringComparison.OrdinalIgnoreCase))
+                if ( request.PaymentMethod.Equals( "VNPay", StringComparison.OrdinalIgnoreCase ) )
                 {
                     // Tạo bản ghi Payment với trạng thái Pending
                     var payment = new Payment
@@ -667,17 +689,17 @@ namespace namHub_FastFood.Controller.USER
                         PaymentStatus = "Pending"
                     };
 
-                    _context.Payments.Add(payment);
+                    _context.Payments.Add( payment );
                     await _context.SaveChangesAsync();
 
                     // Tạo URL thanh toán VNPay
-                    string vnpayUrl = GenerateVnPayUrl(newOrder.OrderId, totalAfterDiscount);
+                    string vnpayUrl = GenerateVnPayUrl( newOrder.OrderId, totalAfterDiscount );
 
                     // Hoàn thành giao dịch trước khi trả về
                     await transaction.CommitAsync();
 
                     // Trả về URL VNPay để người dùng thực hiện thanh toán
-                    return Ok(new CheckoutResponse
+                    return Ok( new CheckoutResponse
                     {
                         Message = "Đơn hàng đã được tạo. Vui lòng thanh toán qua VNPay.",
                         OrderId = newOrder.OrderId,
@@ -687,9 +709,9 @@ namespace namHub_FastFood.Controller.USER
                         PaymentMethod = "VNPay",
                         VnPayUrl = vnpayUrl,
                         PaymentStatus = "Pending"
-                    });
+                    } );
                 }
-                else if (request.PaymentMethod.Equals("Cash", StringComparison.OrdinalIgnoreCase))
+                else if ( request.PaymentMethod.Equals( "Cash", StringComparison.OrdinalIgnoreCase ) )
                 {
                     // Thanh toán bằng tiền mặt
                     // Tạo bản ghi Payment với trạng thái Completed
@@ -702,12 +724,12 @@ namespace namHub_FastFood.Controller.USER
                         PaymentStatus = "Completed"
                     };
 
-                    _context.Payments.Add(payment);
+                    _context.Payments.Add( payment );
                     await _context.SaveChangesAsync();
 
                     // Cập nhật trạng thái đơn hàng thành Completed
                     newOrder.Status = "Completed";
-                    _context.Orders.Update(newOrder);
+                    _context.Orders.Update( newOrder );
                     await _context.SaveChangesAsync();
 
                     // Lưu lịch sử trạng thái đơn hàng
@@ -718,26 +740,26 @@ namespace namHub_FastFood.Controller.USER
                         StatusDate = DateTime.Now,
                         UpdatedBy = "System via Cash Payment"
                     };
-                    _context.OrderStatusHistories.Add(orderStatusHistory);
+                    _context.OrderStatusHistories.Add( orderStatusHistory );
                     await _context.SaveChangesAsync();
 
                     // Cập nhật mã giảm giá (nếu có)
-                    if (!string.IsNullOrEmpty(request.CouponCode))
+                    if ( !string.IsNullOrEmpty( request.CouponCode ) )
                     {
                         var couponToUpdate = await _context.DiscountCodes
-                            .FirstOrDefaultAsync(c => c.Code == request.CouponCode);
+                            .FirstOrDefaultAsync( c => c.Code == request.CouponCode );
 
-                        if (couponToUpdate != null)
+                        if ( couponToUpdate != null )
                         {
-                            if (couponToUpdate.IsSingleUse)
+                            if ( couponToUpdate.IsSingleUse )
                             {
                                 couponToUpdate.IsActive = false;
                             }
 
-                            if (couponToUpdate.MaxUsageCount.HasValue)
+                            if ( couponToUpdate.MaxUsageCount.HasValue )
                             {
                                 couponToUpdate.CurrentUsageCount += 1;
-                                if (couponToUpdate.CurrentUsageCount >= couponToUpdate.MaxUsageCount)
+                                if ( couponToUpdate.CurrentUsageCount >= couponToUpdate.MaxUsageCount )
                                 {
                                     couponToUpdate.IsActive = false;
                                 }
@@ -751,21 +773,21 @@ namespace namHub_FastFood.Controller.USER
                                 UsedAt = DateTime.Now
                             };
 
-                            _context.UsedDiscounts.Add(usedDiscount);
-                            _context.DiscountCodes.Update(couponToUpdate);
+                            _context.UsedDiscounts.Add( usedDiscount );
+                            _context.DiscountCodes.Update( couponToUpdate );
                             await _context.SaveChangesAsync();
                         }
                     }
 
                     // Xóa giỏ hàng sau khi tạo đơn hàng thành công
-                    _context.CartItems.RemoveRange(existingCart.CartItems);
-                    _context.Carts.Remove(existingCart);
+                    _context.CartItems.RemoveRange( existingCart.CartItems );
+                    _context.Carts.Remove( existingCart );
                     await _context.SaveChangesAsync();
 
                     // Hoàn thành giao dịch
                     await transaction.CommitAsync();
 
-                    return Ok(new CheckoutResponse
+                    return Ok( new CheckoutResponse
                     {
                         Message = "Đơn hàng và thanh toán bằng tiền mặt đã được xử lý thành công!",
                         OrderId = newOrder.OrderId,
@@ -774,68 +796,67 @@ namespace namHub_FastFood.Controller.USER
                         TotalAfterDiscount = totalAfterDiscount,
                         PaymentMethod = "Cash",
                         PaymentStatus = "Completed"
-                    });
+                    } );
                 }
                 else
                 {
-                    return BadRequest("Phương thức thanh toán không hợp lệ.");
+                    return BadRequest( "Phương thức thanh toán không hợp lệ." );
                 }
             }
-            catch (DbUpdateException dbEx)
+            catch ( DbUpdateException dbEx )
             {
                 // Ghi log inner exception nếu có
                 string errorMessage = dbEx.InnerException != null ? dbEx.InnerException.Message : dbEx.Message;
                 await transaction.RollbackAsync();
-                return StatusCode(500, $"Đã xảy ra lỗi khi lưu dữ liệu: {errorMessage}");
+                return StatusCode( 500, $"Đã xảy ra lỗi khi lưu dữ liệu: {errorMessage}" );
             }
-            catch (Exception ex)
+            catch ( Exception ex )
             {
                 await transaction.RollbackAsync();
-                return StatusCode(500, $"Đã xảy ra lỗi: {ex.Message}");
+                return StatusCode( 500, $"Đã xảy ra lỗi: {ex.Message}" );
             }
         }
 
-
         // Endpoint xử lý phản hồi từ VNPay
         [AllowAnonymous]
-        [HttpGet("vnpay-return")]
-        public async Task<IActionResult> VnPayReturn([FromQuery] VnPayResponse response)
+        [HttpGet( "vnpay-return" )]
+        public async Task<IActionResult> VnPayReturn( [FromQuery] VnPayResponse response )
         {
             // Kiểm tra chữ ký để đảm bảo phản hồi từ VNPay là hợp lệ
             // Bạn cần tái tạo chuỗi tham số và so sánh với vnp_SecureHash
             // Dưới đây là ví dụ đơn giản, bạn cần triển khai kiểm tra chữ ký đúng theo hướng dẫn của VNPay
 
             // Lấy OrderId từ vnp_TxnRef
-            var orderIdStr = response.vnp_TxnRef.Replace("ORD", ""); // Giả sử vnp_TxnRef là "ORD{orderId}"
-            if (!int.TryParse(orderIdStr, out int orderId))
+            var orderIdStr = response.vnp_TxnRef.Replace( "ORD", "" ); // Giả sử vnp_TxnRef là "ORD{orderId}"
+            if ( !int.TryParse( orderIdStr, out int orderId ) )
             {
-                return BadRequest("Invalid Order ID");
+                return BadRequest( "Invalid Order ID" );
             }
 
             var order = await _context.Orders
-                .Include(o => o.Payments)
-                .FirstOrDefaultAsync(o => o.OrderId == orderId);
+                .Include( o => o.Payments )
+                .FirstOrDefaultAsync( o => o.OrderId == orderId );
 
-            if (order == null)
+            if ( order == null )
             {
-                return BadRequest("Order not found");
+                return BadRequest( "Order not found" );
             }
 
-            if (response.vnp_ResponseCode == "00")
+            if ( response.vnp_ResponseCode == "00" )
             {
                 // Thanh toán thành công
-                var payment = order.Payments.FirstOrDefault(p => p.PaymentStatus == "Pending");
-                if (payment != null)
+                var payment = order.Payments.FirstOrDefault( p => p.PaymentStatus == "Pending" );
+                if ( payment != null )
                 {
                     payment.PaymentStatus = "Completed";
                     payment.TransactionId = response.vnp_TransactionNo;
                     payment.VnPayResponse = response.vnp_SecureHash;
 
-                    _context.Payments.Update(payment);
+                    _context.Payments.Update( payment );
 
                     // Cập nhật trạng thái đơn hàng
                     order.Status = "Completed";
-                    _context.Orders.Update(order);
+                    _context.Orders.Update( order );
 
                     // Lưu lịch sử trạng thái đơn hàng
                     var orderStatusHistory = new OrderStatusHistory
@@ -845,25 +866,25 @@ namespace namHub_FastFood.Controller.USER
                         StatusDate = DateTime.Now,
                         UpdatedBy = "VNPay"
                     };
-                    _context.OrderStatusHistories.Add(orderStatusHistory);
+                    _context.OrderStatusHistories.Add( orderStatusHistory );
 
                     // Cập nhật mã giảm giá (nếu có)
-                    if (!string.IsNullOrEmpty(order.DiscountCodeUsed))
+                    if ( !string.IsNullOrEmpty( order.DiscountCodeUsed ) )
                     {
                         var couponToUpdate = await _context.DiscountCodes
-                            .FirstOrDefaultAsync(c => c.Code == order.DiscountCodeUsed);
+                            .FirstOrDefaultAsync( c => c.Code == order.DiscountCodeUsed );
 
-                        if (couponToUpdate != null)
+                        if ( couponToUpdate != null )
                         {
-                            if (couponToUpdate.IsSingleUse)
+                            if ( couponToUpdate.IsSingleUse )
                             {
                                 couponToUpdate.IsActive = false;
                             }
 
-                            if (couponToUpdate.MaxUsageCount.HasValue)
+                            if ( couponToUpdate.MaxUsageCount.HasValue )
                             {
                                 couponToUpdate.CurrentUsageCount += 1;
-                                if (couponToUpdate.CurrentUsageCount >= couponToUpdate.MaxUsageCount)
+                                if ( couponToUpdate.CurrentUsageCount >= couponToUpdate.MaxUsageCount )
                                 {
                                     couponToUpdate.IsActive = false;
                                 }
@@ -877,30 +898,30 @@ namespace namHub_FastFood.Controller.USER
                                 UsedAt = DateTime.Now
                             };
 
-                            _context.UsedDiscounts.Add(usedDiscount);
-                            _context.DiscountCodes.Update(couponToUpdate);
+                            _context.UsedDiscounts.Add( usedDiscount );
+                            _context.DiscountCodes.Update( couponToUpdate );
                         }
                     }
 
                     await _context.SaveChangesAsync();
 
-                    return Ok(new
+                    return Ok( new
                     {
                         Message = "Thanh toán thành công!",
                         OrderId = order.OrderId,
                         PaymentStatus = "Completed"
-                    });
+                    } );
                 }
             }
             else
             {
                 // Thanh toán không thành công
-                var payment = order.Payments.FirstOrDefault(p => p.PaymentStatus == "Pending");
-                if (payment != null)
+                var payment = order.Payments.FirstOrDefault( p => p.PaymentStatus == "Pending" );
+                if ( payment != null )
                 {
                     payment.PaymentStatus = "Failed";
                     payment.VnPayResponse = response.vnp_SecureHash;
-                    _context.Payments.Update(payment);
+                    _context.Payments.Update( payment );
 
                     // Lưu lịch sử trạng thái đơn hàng
                     var orderStatusHistory = new OrderStatusHistory
@@ -910,18 +931,18 @@ namespace namHub_FastFood.Controller.USER
                         StatusDate = DateTime.Now,
                         UpdatedBy = "VNPay"
                     };
-                    _context.OrderStatusHistories.Add(orderStatusHistory);
+                    _context.OrderStatusHistories.Add( orderStatusHistory );
 
                     await _context.SaveChangesAsync();
                 }
 
-                return BadRequest("Thanh toán không thành công.");
+                return BadRequest( "Thanh toán không thành công." );
             }
 
-            return BadRequest("Invalid response from VNPay.");
+            return BadRequest( "Invalid response from VNPay." );
         }
 
-        private string GenerateVnPayUrl(int orderId, decimal amount)
+        private string GenerateVnPayUrl( int orderId, decimal amount )
         {
             // Thông tin cấu hình VNPay
             string vnpayBaseUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
@@ -946,15 +967,15 @@ namespace namHub_FastFood.Controller.USER
             };
 
             // Sắp xếp các tham số theo thứ tự ABC
-            var sortedParams = vnp_Params.OrderBy(o => o.Key)
-                                         .ToDictionary(k => k.Key, v => v.Value);
+            var sortedParams = vnp_Params.OrderBy( o => o.Key )
+                                         .ToDictionary( k => k.Key, v => v.Value );
 
             // Tạo chuỗi tham số
-            string query = string.Join("&", sortedParams.Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}"));
+            string query = string.Join( "&", sortedParams.Select( kvp => $"{kvp.Key}={Uri.EscapeDataString( kvp.Value )}" ) );
 
             // Tạo chữ ký (hash) cho các tham số
             string signData = query + vnp_HashSecret;
-            string vnp_SecureHash = ComputeSha256Hash(signData);
+            string vnp_SecureHash = ComputeSha256Hash( signData );
 
             // Thêm chữ ký vào tham số
             string vnp_Url = $"{vnpayBaseUrl}?{query}&vnp_SecureHash={vnp_SecureHash}&vnp_SecureHashType=SHA256";
@@ -962,32 +983,32 @@ namespace namHub_FastFood.Controller.USER
             return vnp_Url;
         }
 
-
         // Hàm tính hash SHA256
-        private string ComputeSha256Hash(string rawData)
+        private string ComputeSha256Hash( string rawData )
         {
-            using (SHA256 sha256Hash = SHA256.Create())
+            using ( SHA256 sha256Hash = SHA256.Create() )
             {
-                byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(rawData));
+                byte[] bytes = sha256Hash.ComputeHash( Encoding.UTF8.GetBytes( rawData ) );
                 StringBuilder builder = new StringBuilder();
-                foreach (var b in bytes)
+                foreach ( var b in bytes )
                 {
-                    builder.Append(b.ToString("x2"));
+                    builder.Append( b.ToString( "x2" ) );
                 }
                 return builder.ToString();
             }
         }
 
-        #endregion
+        #endregion Các Hàm Thanh Toán Bị Thừa Không Dùng Đến
+
         private int? GetUserIdFromClaims()
         {
-            var userIdClaim = User.FindFirst("user_id")?.Value;
-            if (string.IsNullOrEmpty(userIdClaim))
+            var userIdClaim = User.FindFirst( "user_id" )?.Value;
+            if ( string.IsNullOrEmpty( userIdClaim ) )
             {
                 return null;
             }
 
-            if (int.TryParse(userIdClaim, out int userId))
+            if ( int.TryParse( userIdClaim, out int userId ) )
             {
                 return userId;
             }
@@ -1028,6 +1049,4 @@ namespace namHub_FastFood.Controller.USER
         public string vnp_SecureHash { get; set; } = string.Empty;
         // Thêm các thuộc tính khác nếu cần thiết
     }
-
-
 }

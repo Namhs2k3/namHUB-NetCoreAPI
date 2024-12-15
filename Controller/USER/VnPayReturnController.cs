@@ -103,11 +103,6 @@ namespace namHub_FastFood.Controller.USER
 
                                     if (discountCode != null)
                                     {
-                                        if (discountCode.IsSingleUse)
-                                        {
-                                            discountCode.IsActive = false;
-                                        }
-
                                         if (discountCode.MaxUsageCount.HasValue)
                                         {
                                             discountCode.CurrentUsageCount += 1;

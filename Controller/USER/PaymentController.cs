@@ -34,6 +34,7 @@ namespace namHub_FastFood.Controller.USER
                 return BadRequest(new { message = ex.Message });
             }
         }
+
         [Authorize]
         [HttpPost("checkout")]
         public async Task<IActionResult> Checkout([FromBody] PaymentRequestModel request)
@@ -78,9 +79,19 @@ namespace namHub_FastFood.Controller.USER
                 if (!string.IsNullOrEmpty(request.CouponCode))
                 {
                     var coupon = await _context.DiscountCodes
-                        .FirstOrDefaultAsync(c => c.Code == request.CouponCode && c.IsActive &&
-                                                  c.StartDate <= DateTime.Now && c.EndDate >= DateTime.Now &&
-                                                  ((!c.IsSingleUse && c.CurrentUsageCount < c.MaxUsageCount) || (c.IsSingleUse && c.CurrentUsageCount == 0)));
+                                    .FirstOrDefaultAsync(c =>
+                                        c.Code == request.CouponCode &&
+                                        c.IsActive &&
+                                        c.StartDate <= DateTime.Now &&
+                                        c.EndDate >= DateTime.Now &&
+                                        (
+                                            !c.IsSingleUse || // Không phải loại dùng một lần, hoặc...
+                                            !_context.UsedDiscounts.Any(ud => ud.DiscountId == c.DiscountId && ud.CustomerId == customer.CustomerId) // Loại dùng một lần và user chưa sử dụng
+                                        ) &&
+                                        (
+                                            c.MaxUsageCount == null || c.CurrentUsageCount < c.MaxUsageCount // Chỉ kiểm tra số lần sử dụng nếu có MaxUsageCount
+                                        )
+                                    );
 
                     if (coupon == null)
                     {
@@ -218,11 +229,6 @@ namespace namHub_FastFood.Controller.USER
 
                         if (couponToUpdate != null)
                         {
-                            if (couponToUpdate.IsSingleUse)
-                            {
-                                couponToUpdate.IsActive = false;
-                            }
-
                             if (couponToUpdate.MaxUsageCount.HasValue)
                             {
                                 couponToUpdate.CurrentUsageCount += 1;
@@ -281,6 +287,7 @@ namespace namHub_FastFood.Controller.USER
                 return StatusCode(500, $"Đã xảy ra lỗi: {ex.Message}");
             }
         }
+
         private int? GetUserIdFromClaims()
         {
             var userIdClaim = User.FindFirst("user_id")?.Value;
@@ -297,6 +304,7 @@ namespace namHub_FastFood.Controller.USER
             return null;
         }
     }
+
     public class PaymentRequestModel
     {
         public string? CouponCode { get; set; }

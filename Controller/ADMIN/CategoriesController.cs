@@ -22,7 +22,7 @@ namespace namHub_FastFood.Controller.ADMIN
             _context = dbContext;
 
             // Đường dẫn thư mục upload hình ảnh (có thể là thư mục trong wwwroot)
-            _uploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+            _uploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "CategoryFood");
 
             // Tạo thư mục nếu nó chưa tồn tại
             if (!Directory.Exists(_uploadFolder))
@@ -107,7 +107,7 @@ namespace namHub_FastFood.Controller.ADMIN
             {
                 CategoryName = myCategory.CategoryName,
                 Description = myCategory.CategoryDescription,
-                ImgUrl = $"/images/{fileName}",
+                ImgUrl = $"/images/CategoryFood/{fileName}",
                 Keywords = myCategory.keywords,
             };
 
@@ -162,7 +162,7 @@ namespace namHub_FastFood.Controller.ADMIN
                 }
 
                 // Cập nhật ImageUrl nếu có ảnh mới
-                category.ImgUrl = $"/images/{fileName}";
+                category.ImgUrl = $"/images/CategoryFood/{fileName}";
             }
 
             // Cập nhật thuộc tính của danh mục

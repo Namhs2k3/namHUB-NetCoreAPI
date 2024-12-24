@@ -17,10 +17,12 @@ namespace namHub_FastFood.Controller.USER
     {
         public readonly namHUBDbContext _context;
         private readonly string _uploadFolder;
+        private readonly ILogger<CustomerController> _logger;
 
-        public CustomerController( namHUBDbContext dbContext )
+        public CustomerController( namHUBDbContext dbContext, ILogger<CustomerController> logger )
         {
             _context = dbContext;
+            _logger = logger;
 
             // Đường dẫn thư mục upload hình ảnh (có thể là thư mục trong wwwroot)
             _uploadFolder = Path.Combine( Directory.GetCurrentDirectory(), "wwwroot", "images" );
@@ -103,6 +105,8 @@ namespace namHub_FastFood.Controller.USER
             {
                 return Unauthorized( "Hãy đăng nhập để xem chi tiết đơn hàng!" );
             }
+
+            _logger.LogWarning( $"UserId :{userId}" );
 
             // Truy vấn thông tin sản phẩm trong đơn hàng của khách hàng
             var cusOItems = await _context.OrderItems
@@ -303,43 +307,166 @@ namespace namHub_FastFood.Controller.USER
         }
 
         [HttpGet( "get-popular-foods" )]
-        public async Task<IActionResult> GetPopularFood()
+        public async Task<IActionResult> GetPopularFood( int? page = null, int? pageSize = null )
         {
-            var popularFoods = await _context.Products
-                .Where( p => p.IsPopular == true && p.IsHidden == false )
+            // Query cơ bản để lọc sản phẩm
+            var query = _context.Products
+                .Where( p => p.IsPopular == true && p.IsHidden == false );
+
+            // Đếm tổng số sản phẩm phù hợp
+            var totalItems = await query.CountAsync();
+
+            // Nếu page và pageSize có giá trị, thực hiện phân trang
+            if ( page.HasValue && pageSize.HasValue )
+            {
+                if ( page <= 0 || pageSize <= 0 )
+                {
+                    return BadRequest( "Page and pageSize must be greater than 0." );
+                }
+
+                query = query
+                    .OrderBy( p => p.ProductId ) // Sắp xếp theo ProductId (có thể thay đổi)
+                    .Skip( ( page.Value - 1 ) * pageSize.Value ) // Bỏ qua các mục trước đó
+                    .Take( pageSize.Value ); // Lấy số mục theo kích thước trang
+            }
+
+            // Lấy danh sách sản phẩm
+            var popularFoods = await query
                 .Select( p => new
                 {
                     p.ProductId,
                     p.ProductName,
                     p.Description,
                     p.ImageUrl,
-                    Price = p.DiscountedPrice ?? p.Price,
+                    rating = p.ProductRatings.Any() ? p.ProductRatings.Average( r => r.Rating ) : 0,
+                    ratingCount = p.ProductRatings.Count(),
+                    price = p.Price,
+                    discountedPrice = p.DiscountedPrice ?? p.Price,
                     discountPercentage = p.DiscountPercentage ?? 0,
-                } ).ToListAsync();
+                } )
+                .ToListAsync();
 
-            return Ok( popularFoods );
+            // Tính tổng số trang
+            int? totalPages = pageSize.HasValue ? ( int ) Math.Ceiling( totalItems / ( double ) pageSize.Value ) : null;
+
+            // Trả về kết quả
+            var result = new
+            {
+                currentPage = page,
+                pageSize = pageSize,
+                totalItems = totalItems,
+                totalPages = totalPages,
+                items = popularFoods
+            };
+
+            return Ok( result );
+        }
+
+        [HttpGet( "get-discounted-foods" )]
+        public async Task<IActionResult> GetDiscountedFood( int? page = null, int? pageSize = null )
+        {
+            // Query cơ bản để lọc sản phẩm
+            var query = _context.Products
+                .Include( p => p.ProductRatings )
+                .Where( p => p.DiscountPercentage > 0 && p.IsHidden == false );
+
+            // Đếm tổng số sản phẩm phù hợp
+            var totalItems = await query.CountAsync();
+
+            // Nếu page và pageSize không null, thực hiện phân trang
+            if ( page.HasValue && pageSize.HasValue )
+            {
+                if ( page <= 0 || pageSize <= 0 )
+                {
+                    return BadRequest( "Page and pageSize must be greater than 0." );
+                }
+
+                query = query
+                    .OrderBy( p => p.ProductId ) // Sắp xếp theo ProductId (có thể thay đổi)
+                    .Skip( ( page.Value - 1 ) * pageSize.Value ) // Bỏ qua các mục ở các trang trước
+                    .Take( pageSize.Value ); // Lấy số mục phù hợp
+            }
+
+            // Lấy danh sách sản phẩm
+            var discountedFoods = await query
+                .Select( p => new
+                {
+                    p.ProductId,
+                    p.ProductName,
+                    p.Description,
+                    p.ImageUrl,
+                    p.IsPopular,
+                    rating = p.ProductRatings.Any() ? p.ProductRatings.Average( r => r.Rating ) : 0,
+                    ratingCount = p.ProductRatings.Count(),
+                    price = p.Price,
+                    discountedPrice = p.DiscountedPrice ?? p.Price,
+                    discountPercentage = p.DiscountPercentage ?? 0,
+                } )
+                .ToListAsync();
+
+            // Tính tổng số trang
+            int? totalPages = pageSize.HasValue ? ( int ) Math.Ceiling( totalItems / ( double ) pageSize.Value ) : null;
+
+            // Trả về kết quả
+            var result = new
+            {
+                currentPage = page,
+                pageSize = pageSize,
+                totalItems = totalItems,
+                totalPages = totalPages,
+                items = discountedFoods
+            };
+
+            return Ok( result );
         }
 
         [HttpGet( "get-food-list" )]
-        public async Task<IActionResult> GetFood( [FromQuery] string? searchTerm, [FromQuery] int? categoryId )
+        public async Task<IActionResult> GetFood(
+                [FromQuery] string? searchTerm,
+                [FromQuery] int? productId,
+                [FromQuery] int? categoryId,
+                [FromQuery] int? page = null,
+                [FromQuery] int? pageSize = null )
         {
-            // Lọc sản phẩm theo IsHidden = false, theo danh mục và theo từ khóa tìm kiếm
+            // Lọc sản phẩm cơ bản
             var foodsQuery = _context.Products
                 .Where( p => p.IsHidden == false );
 
-            // Nếu có tìm kiếm theo từ khóa, thêm điều kiện tìm kiếm
+            // Nếu có từ khóa tìm kiếm, thêm điều kiện
             if ( !string.IsNullOrEmpty( searchTerm ) )
             {
                 foodsQuery = foodsQuery.Where( p => p.ProductName.Contains( searchTerm ) );
             }
 
-            // Nếu có tìm kiếm theo danh mục, thêm điều kiện lọc danh mục
+            if ( productId.HasValue )
+            {
+                foodsQuery = foodsQuery.Where( p => p.ProductId == productId.Value );
+            }
+
+            // Nếu có danh mục, thêm điều kiện lọc
             if ( categoryId.HasValue )
             {
                 foodsQuery = foodsQuery.Where( p => p.CategoryId == categoryId.Value );
             }
 
-            // Lấy dữ liệu từ truy vấn
+            // Đếm tổng số sản phẩm phù hợp
+            var totalItems = await foodsQuery.CountAsync();
+
+            // Nếu `page` và `pageSize` được cung cấp, thực hiện phân trang
+            if ( page.HasValue && pageSize.HasValue )
+            {
+                if ( page <= 0 || pageSize <= 0 )
+                {
+                    return BadRequest( "Page and pageSize must be greater than 0." );
+                }
+
+                foodsQuery = foodsQuery
+                    .OrderBy( p => p.ProductId ) // Sắp xếp (có thể thay đổi tuỳ theo yêu cầu)
+                    .Skip( ( page.Value - 1 ) * pageSize.Value ) // Bỏ qua các mục trước đó
+                    .Take( pageSize.Value ); // Lấy số mục theo kích thước trang
+            }
+
+            // Lấy dữ liệu
             var foods = await foodsQuery
                 .Select( p => new
                 {
@@ -348,12 +475,31 @@ namespace namHub_FastFood.Controller.USER
                     p.Description,
                     p.ImageUrl,
                     p.CategoryId,
-                    Price = p.DiscountedPrice ?? p.Price,
+                    categoryName = p.Category.CategoryName,
+                    p.IsHidden,
+                    p.IsPopular,
+                    rating = p.ProductRatings.Any() ? p.ProductRatings.Average( r => r.Rating ) : 0,
+                    ratingCount = p.ProductRatings.Count(),
+                    p.Price,
+                    discountedPrice = p.DiscountedPrice ?? p.Price,
                     discountPercentage = p.DiscountPercentage ?? 0,
                 } )
                 .ToListAsync();
 
-            return Ok( foods );
+            // Tính tổng số trang
+            int? totalPages = pageSize.HasValue ? ( int ) Math.Ceiling( totalItems / ( double ) pageSize.Value ) : null;
+
+            // Trả về kết quả
+            var result = new
+            {
+                currentPage = page,
+                pageSize = pageSize,
+                totalItems = totalItems,
+                totalPages = totalPages,
+                items = foods
+            };
+
+            return Ok( result );
         }
 
         [HttpPost( "add-to-cart" )]
@@ -549,7 +695,6 @@ namespace namHub_FastFood.Controller.USER
             return Ok( new { message = "Sản phẩm đã được xóa khỏi giỏ hàng", productId = foodId } );
         }
 
-        [Authorize]
         [HttpGet( "get-cart-item-count" )]
         public async Task<IActionResult> GetCartItemCount()
         {

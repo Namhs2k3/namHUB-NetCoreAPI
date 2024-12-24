@@ -8,7 +8,6 @@ namespace namHub_FastFood.Controller.ADMIN
 {
     [Route("api/customer-manage-for-admin")]
     [ApiController]
-    [Authorize(Roles = "ADMIN")]
     public class CustomersManageController : ControllerBase
     {
         private readonly namHUBDbContext _context;
@@ -19,6 +18,7 @@ namespace namHub_FastFood.Controller.ADMIN
 
         // Xem thông tin của khách hàng
         [HttpGet("get-customer-list")]
+        [Authorize( Roles = "ADMIN" )]
         public async Task<IActionResult> GetCL()
         {
             var cusList = await _context.Customers
@@ -44,6 +44,7 @@ namespace namHub_FastFood.Controller.ADMIN
 
         // Xem danh sách đơn hàng của người dùng 
         [HttpGet("get-customer-orders-for-admin/{customerId}")]
+        [Authorize( Roles = "ADMIN" )]
         public async Task<IActionResult> GetCusOrders(int customerId)
         {
             if (customerId <= 0)
@@ -87,6 +88,7 @@ namespace namHub_FastFood.Controller.ADMIN
 
         // Xem chi tiết đơn hàng của người dùng
         [HttpGet("get-customer-order-items-for-admin/{orderId}")]
+        [Authorize( Roles = "ADMIN, DELIVER" )]
         public async Task<IActionResult> GetOrderItems(int orderId)
         {
             if (orderId <= 0)

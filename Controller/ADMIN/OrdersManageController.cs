@@ -6,42 +6,56 @@ using namHub_FastFood.Models;
 
 namespace namHub_FastFood.Controller.ADMIN
 {
-    [Route("api/orders-manage-for-admin")]
+    [Route( "api/orders-manage-for-admin" )]
     [ApiController]
-    [Authorize(Roles = "ADMIN")]
     public class OrdersManageController : ControllerBase
     {
         private readonly namHUBDbContext _context;
-        public OrdersManageController(namHUBDbContext context)
+
+        public OrdersManageController( namHUBDbContext context )
         {
             _context = context;
         }
 
-        [HttpGet("get-orders-list")]
+        [HttpGet( "get-orders-list" )]
         [Authorize( Roles = "ADMIN, EMPLOYEE" )]
-        public async Task<IActionResult> Get([FromQuery] string? status)
+        public async Task<IActionResult> Get( [FromQuery] string? status )
         {
-            // Nếu status có giá trị, kiểm tra nếu status không phải là "Pending", "Completed" hoặc "Failed"
-            if (!string.IsNullOrEmpty(status) && !new[] { "Pending", "Completed", "Failed", "Preparing", "On Delivery", "Ready" }.Contains(status))
+            // Danh sách trạng thái hợp lệ (có thể khai báo tĩnh để tái sử dụng)
+            var validStatuses = new[] { "Pending", "Completed", "Failed", "Preparing", "On Delivery", "Ready" };
+
+            // Kiểm tra giá trị status
+            if ( !string.IsNullOrEmpty( status ) && !validStatuses.Contains( status ) )
             {
-                return BadRequest("Invalid order status.");
+                return BadRequest( "Invalid order status." );
             }
 
-            // Query đơn hàng, nếu có status thì lọc theo status, nếu không thì lấy tất cả
+            // Query cơ bản với điều kiện eager loading
             var ordersQuery = _context.Orders
-                .Include(o => o.Customer) // Eager loading bảng Customer
-                .ThenInclude(c => c.Addresses) // Eager loading bảng Addresses của Customer
-                .Include(o => o.Payments) // Eager loading bảng Payments
-                .Select(o => new
+                .Include( o => o.Customer )
+                .ThenInclude( c => c.Addresses )
+                .Include( o => o.Payments )
+                .AsQueryable(); // Đảm bảo query vẫn có thể tiếp tục xử lý
+
+            // Lọc theo status nếu có
+            if ( !string.IsNullOrEmpty( status ) )
+            {
+                ordersQuery = ordersQuery.Where( o => o.Status == status );
+            }
+
+            // Query ánh xạ kết quả
+            var orders = await ordersQuery
+                .OrderByDescending( o => o.OrderDate ) // Sắp xếp cuối cùng
+                .Select( o => new
                 {
                     o.OrderId,
                     o.CustomerId,
                     o.Customer.FullName,
                     o.Customer.Phone,
-                    // Lấy địa chỉ mặc định
+                    // Lấy địa chỉ mặc định nếu có
                     CustomerAddress = o.Customer.Addresses
-                        .Where(a => a.IsDefault == true)
-                        .Select(a => $"{a.AddressLine1}, {a.City}")
+                        .Where( a => a.IsDefault == true )
+                        .Select( a => $"{a.AddressLine1}, {a.City}" )
                         .FirstOrDefault(),
                     o.OrderDate,
                     o.Status,
@@ -49,46 +63,35 @@ namespace namHub_FastFood.Controller.ADMIN
                     o.DiscountCodeUsed,
                     o.DiscountAmount,
                     o.TotalAfterDiscount,
-                    // Sử dụng biến tạm cho Payments
-                    Payment = o.Payments.OrderByDescending(p => p.PaymentDate).FirstOrDefault(),
-                    // Điều kiện sử dụng ternary operator cho PaymentStatus
-                    PaymentStatus = o.Payments.FirstOrDefault() != null && o.Payments.FirstOrDefault().PaymentStatus == "Completed" ? "Đã Thanh Toán" :
-                                    o.Payments.FirstOrDefault() != null && o.Payments.FirstOrDefault().PaymentStatus == "Failed" ? "Thanh Toán Thất Bại" :
-                                    "Chưa Thanh Toán"
-                });
-
-            // Lọc theo status nếu có giá trị
-            if (!string.IsNullOrEmpty(status))
-            {
-                ordersQuery = ordersQuery.Where(o => o.Status == status);
-            }
-
-            // Sắp xếp theo ngày đặt hàng
-            var orders = await ordersQuery
-                .OrderByDescending(o => o.OrderDate)
+                    // Lấy Payment cuối cùng (nếu có)
+                    Payment = o.Payments.OrderByDescending( p => p.PaymentDate ).FirstOrDefault(),
+                    // Trạng thái thanh toán
+                    PaymentStatus = o.Payments
+                        .OrderByDescending( p => p.PaymentDate ) // Sắp xếp theo ngày thanh toán
+                        .Select( p => p.PaymentStatus == "Completed" ? "Đã Thanh Toán" :
+                                     p.PaymentStatus == "Failed" ? "Thanh Toán Thất Bại" : "Chưa Thanh Toán" )
+                        .FirstOrDefault() // Lấy kết quả đầu tiên
+                } )
                 .ToListAsync();
 
-            return Ok(orders);
+            return Ok( orders );
         }
 
-
-
-
-        [Authorize(Roles = "ADMIN,DELIVER,USER")]
-        [HttpGet("get-orders-history/{orderId}")]
-        public async Task<IActionResult> GetOrderHistory(int orderId)
+        [Authorize( Roles = "ADMIN,DELIVER,USER,EMPLOYEE" )]
+        [HttpGet( "get-orders-history/{orderId}" )]
+        public async Task<IActionResult> GetOrderHistory( int orderId )
         {
             // Kiểm tra nếu orderId có tồn tại trong Orders
-            var orderExists = await _context.Orders.AnyAsync(o => o.OrderId == orderId);
-            if (!orderExists)
+            var orderExists = await _context.Orders.AnyAsync( o => o.OrderId == orderId );
+            if ( !orderExists )
             {
-                return NotFound(new { Message = "Order not found." });
+                return NotFound( new { Message = "Order not found." } );
             }
 
             // Lấy danh sách lịch sử đơn hàng dựa trên OrderId
             var orderHistory = await _context.OrderStatusHistories
-                .Where(h => h.OrderId == orderId)
-                .Select(h => new OrderStatusHistoryDto
+                .Where( h => h.OrderId == orderId )
+                .Select( h => new OrderStatusHistoryDto
                 {
                     HistoryId = h.StatusHistoryId,
                     OrderId = h.OrderId.Value,
@@ -96,15 +99,15 @@ namespace namHub_FastFood.Controller.ADMIN
                     Status = h.Status,
                     UpdatedAt = h.StatusDate.Value,
                     UpdatedBy = h.UpdatedBy ?? "Unknow User"
-                })
-                .OrderByDescending(h => h.UpdatedAt)
+                } )
+                .OrderByDescending( h => h.UpdatedAt )
                 .ToListAsync();
 
-            return Ok(orderHistory);
+            return Ok( orderHistory );
         }
 
-        [Authorize(Roles = "ADMIN,EMPLOYEE,DELIVER")]
-        [HttpPost("add-new-state-for-order-history/{orderId}")]
+        [Authorize( Roles = "ADMIN,EMPLOYEE,DELIVER" )]
+        [HttpPost( "add-new-state-for-order-history/{orderId}" )]
         public async Task<IActionResult> AddNewState( int orderId, [FromBody] string status )
         {
             if ( string.IsNullOrWhiteSpace( status ) )
@@ -152,6 +155,7 @@ namespace namHub_FastFood.Controller.ADMIN
             }
         }
     }
+
     public class OrderStatusHistoryDto
     {
         public int HistoryId { get; set; }
@@ -161,5 +165,4 @@ namespace namHub_FastFood.Controller.ADMIN
         public DateTime UpdatedAt { get; set; }
         public string UpdatedBy { get; set; }
     }
-
 }

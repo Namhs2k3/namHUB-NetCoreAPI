@@ -49,6 +49,8 @@ public partial class namHUBDbContext : DbContext
 
     public virtual DbSet<Product> Products { get; set; }
 
+    public virtual DbSet<ProductRating> ProductRatings { get; set; }
+
     public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
 
     public virtual DbSet<ResetPasswordToken> ResetPasswordTokens { get; set; }
@@ -264,6 +266,20 @@ public partial class namHUBDbContext : DbContext
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(getdate())");
 
             entity.HasOne(d => d.Category).WithMany(p => p.Products).HasConstraintName("FK__Products__catego__6C190EBB");
+        });
+
+        modelBuilder.Entity<ProductRating>(entity =>
+        {
+            entity.HasKey(e => e.RatingId).HasName("PK__ProductR__FCCDF87CA1AA1489");
+
+            entity.ToTable("ProductRating", tb => tb.HasTrigger("trg_UpdateProductRating"));
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.ProductRatings).HasConstraintName("FK_Product");
+
+            entity.HasOne(d => d.User).WithMany(p => p.ProductRatings).HasConstraintName("FK_User");
         });
 
         modelBuilder.Entity<RefreshToken>(entity =>

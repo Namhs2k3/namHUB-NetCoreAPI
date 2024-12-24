@@ -7,54 +7,54 @@ using System.Linq;
 
 namespace namHub_FastFood.Controller.USER
 {
-    [Route("api/user-info")]
+    [Route( "api/user-info" )]
     [ApiController]
     public class UserInfoController : ControllerBase
     {
         public readonly namHUBDbContext _context;
         private readonly IEmailService _emailService;
         private readonly string _uploadFolder;
-        public UserInfoController(namHUBDbContext dbContext, IEmailService emailService)
+
+        public UserInfoController( namHUBDbContext dbContext, IEmailService emailService )
         {
             _context = dbContext;
             _emailService = emailService;
 
             // Đường dẫn thư mục upload hình ảnh (có thể là thư mục trong wwwroot)
-            _uploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+            _uploadFolder = Path.Combine( Directory.GetCurrentDirectory(), "wwwroot", "images" );
 
             // Tạo thư mục nếu nó chưa tồn tại
-            if (!Directory.Exists(_uploadFolder))
+            if ( !Directory.Exists( _uploadFolder ) )
             {
-                Directory.CreateDirectory(_uploadFolder);
+                Directory.CreateDirectory( _uploadFolder );
             }
             _emailService = emailService;
         }
 
-        [Authorize(Roles = "ADMIN,EMPLOYEE,DELIVER,USER")]
-        [HttpGet("get-user-info")]
+        [HttpGet( "get-user-info" )]
         public async Task<IActionResult> GetUserInfo()
         {
             // Lấy thông tin customer id từ claim của token
-            var userIdClaim = User.FindFirst("user_id")?.Value;
+            var userIdClaim = User.FindFirst( "user_id" )?.Value;
 
-            if (string.IsNullOrEmpty(userIdClaim))
+            if ( string.IsNullOrEmpty( userIdClaim ) )
             {
-                return Unauthorized("Hãy đăng nhập để xem thông tin!");
+                return Unauthorized( "Hãy đăng nhập để xem thông tin!" );
             }
 
             int userId;
-            if (!int.TryParse(userIdClaim, out userId))
+            if ( !int.TryParse( userIdClaim, out userId ) )
             {
-                return BadRequest("Không thể lấy thông tin khách hàng!");
+                return BadRequest( "Không thể lấy thông tin khách hàng!" );
             }
 
             // Tìm user và tải trước các địa chỉ của họ
             var user = await _context.Users
-                .FirstOrDefaultAsync(c => c.UserId == userId);
+                .FirstOrDefaultAsync( c => c.UserId == userId );
 
-            if (user == null)
+            if ( user == null )
             {
-                return NotFound("Không tìm thấy người dùng.");
+                return NotFound( "Không tìm thấy người dùng." );
             }
 
             // Tạo đối tượng thông tin khách hàng
@@ -66,41 +66,41 @@ namespace namHub_FastFood.Controller.USER
                 user?.Email,
             };
 
-            return Ok(userInfo);
+            return Ok( userInfo );
         }
 
-        [Authorize(Roles = "ADMIN,EMPLOYEE,DELIVER,USER")]
-        [HttpGet("get-customer-info")]
+        [Authorize( Roles = "ADMIN,EMPLOYEE,DELIVER,USER" )]
+        [HttpGet( "get-customer-info" )]
         public async Task<IActionResult> GetCusInfo()
         {
             // Lấy thông tin customer id từ claim của token
-            var userIdClaim = User.FindFirst("user_id")?.Value;
+            var userIdClaim = User.FindFirst( "user_id" )?.Value;
 
-            if (string.IsNullOrEmpty(userIdClaim))
+            if ( string.IsNullOrEmpty( userIdClaim ) )
             {
-                return Unauthorized("Hãy đăng nhập để xem thông tin!");
+                return Unauthorized( "Hãy đăng nhập để xem thông tin!" );
             }
 
             int userId;
-            if (!int.TryParse(userIdClaim, out userId))
+            if ( !int.TryParse( userIdClaim, out userId ) )
             {
-                return BadRequest("Không thể lấy thông tin khách hàng!");
+                return BadRequest( "Không thể lấy thông tin khách hàng!" );
             }
 
             // Tìm khách hàng và tải trước các địa chỉ của họ
             var customer = await _context.Customers
-                .Include(c => c.Addresses) // Tải trước các địa chỉ của khách hàng
-                .Include(c => c.User) // phải tải trước tt từ User, nếu ko sẽ bị 'null'
-                .FirstOrDefaultAsync(c => c.UserId == userId);
+                .Include( c => c.Addresses ) // Tải trước các địa chỉ của khách hàng
+                .Include( c => c.User ) // phải tải trước tt từ User, nếu ko sẽ bị 'null'
+                .FirstOrDefaultAsync( c => c.UserId == userId );
 
-            if (customer == null)
+            if ( customer == null )
             {
-                return NotFound("Không tìm thấy khách hàng.");
+                return NotFound( "Không tìm thấy khách hàng." );
             }
 
             // Lấy địa chỉ mặc định nếu có
             var defaultAddress = customer.Addresses
-                .FirstOrDefault(a => a.IsDefault == true);
+                .FirstOrDefault( a => a.IsDefault == true );
 
             // Tạo đối tượng thông tin khách hàng
             var cusInfo = new
@@ -118,66 +118,66 @@ namespace namHub_FastFood.Controller.USER
                 customer?.UpdatedAt,
             };
 
-            return Ok(cusInfo);
+            return Ok( cusInfo );
         }
 
         // Add khi người dùng mua hàng hoặc thiết lập thông tin khởi đầu
-        [Authorize(Roles = "ADMIN,EMPLOYEE,DELIVER,USER")]
-        [HttpPost("add-info")]
-        public async Task<IActionResult> AddCusInfo([FromForm] UpdateCustomerInfoDto model)
+        [Authorize( Roles = "ADMIN,EMPLOYEE,DELIVER,USER" )]
+        [HttpPost( "add-info" )]
+        public async Task<IActionResult> AddCusInfo( [FromForm] UpdateCustomerInfoDto model )
         {
             // Kiểm tra dữ liệu đầu vào
-            if (!ModelState.IsValid)
+            if ( !ModelState.IsValid )
             {
-                return BadRequest(ModelState);
+                return BadRequest( ModelState );
             }
             // Lấy thông tin customer id từ claim của token
             var userId = GetUserIdFromClaims();
-            if (userId == null)
+            if ( userId == null )
             {
-                return Unauthorized("Hãy đăng nhập để thực hiện cập nhật thông tin!");
+                return Unauthorized( "Hãy đăng nhập để thực hiện cập nhật thông tin!" );
             }
 
             // Kiểm tra xem khách hàng đã tồn tại hay chưa
-            var existingCustomer = await _context.Customers.FirstOrDefaultAsync(c => c.UserId == userId.Value);
-            if (existingCustomer != null)
+            var existingCustomer = await _context.Customers.FirstOrDefaultAsync( c => c.UserId == userId.Value );
+            if ( existingCustomer != null )
             {
-                return BadRequest("Khách hàng đã có thông tin, hãy chọn 'Cập Nhật Thông Tin'!");
+                return BadRequest( "Khách hàng đã có thông tin, hãy chọn 'Cập Nhật Thông Tin'!" );
             }
 
             // Kiểm tra xem có file ảnh hay không
-            if (model.UserImageURL == null || model.UserImageURL.Length == 0)
+            if ( model.UserImageURL == null || model.UserImageURL.Length == 0 )
             {
-                return BadRequest("Chưa tải ảnh nào hết!");
+                return BadRequest( "Chưa tải ảnh nào hết!" );
             }
 
             // Lưu file ảnh
             var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
-            var extension = Path.GetExtension(model.UserImageURL.FileName).ToLower();
-            if (!allowedExtensions.Contains(extension))
+            var extension = Path.GetExtension( model.UserImageURL.FileName ).ToLower();
+            if ( !allowedExtensions.Contains( extension ) )
             {
-                return BadRequest("Chỉ hỗ trợ các định dạng ảnh: .jpg, .jpeg, .png, .gif.");
+                return BadRequest( "Chỉ hỗ trợ các định dạng ảnh: .jpg, .jpeg, .png, .gif." );
             }
-            var fileName = Path.GetFileName(model.UserImageURL.FileName);
-            var filePath = Path.Combine(_uploadFolder, fileName);
+            var fileName = Path.GetFileName( model.UserImageURL.FileName );
+            var filePath = Path.Combine( _uploadFolder, fileName );
 
             try
             {
-                using (var stream = new FileStream(filePath, FileMode.Create))
+                using ( var stream = new FileStream( filePath, FileMode.Create ) )
                 {
-                    await model.UserImageURL.CopyToAsync(stream);
+                    await model.UserImageURL.CopyToAsync( stream );
                 }
             }
-            catch (Exception ex)
+            catch ( Exception ex )
             {
-                return StatusCode(500, $"Lỗi khi lưu hình ảnh: {ex.Message}");
+                return StatusCode( 500, $"Lỗi khi lưu hình ảnh: {ex.Message}" );
             }
 
             // Tìm người dùng và cập nhật thông tin
-            var exitingUser = await _context.Users.FindAsync(userId.Value);
-            if (exitingUser == null)
+            var exitingUser = await _context.Users.FindAsync( userId.Value );
+            if ( exitingUser == null )
             {
-                return NotFound("Người dùng ko tồn tại!");
+                return NotFound( "Người dùng ko tồn tại!" );
             }
             exitingUser.UpdatedAt = DateTime.Now;
             exitingUser.FullName = model.FullName;
@@ -197,74 +197,74 @@ namespace namHub_FastFood.Controller.USER
                 UserImage = $"/images/{fileName}",
             };
 
-            _context.Customers.Add(newCustomer);
+            _context.Customers.Add( newCustomer );
             await _context.SaveChangesAsync();
 
-            return Ok("Thêm mới thông tin thành công.");
+            return Ok( "Thêm mới thông tin thành công." );
         }
 
         // Update khi người dùng muốn thay đổi thông tin
-        [Authorize(Roles = "ADMIN,EMPLOYEE,DELIVER,USER")]
-        [HttpPut("update-info")]
-        public async Task<IActionResult> UpdateCusInfo([FromForm] UpdateCustomerInfoDto model)
+        [Authorize( Roles = "ADMIN,EMPLOYEE,DELIVER,USER" )]
+        [HttpPut( "update-info" )]
+        public async Task<IActionResult> UpdateCusInfo( [FromForm] UpdateCustomerInfoDto model )
         {
             // Lấy thông tin customer id từ claim của token
             var userId = GetUserIdFromClaims();
-            if (userId == null)
+            if ( userId == null )
             {
-                return Unauthorized("Hãy đăng nhập để thực hiện cập nhật thông tin!");
+                return Unauthorized( "Hãy đăng nhập để thực hiện cập nhật thông tin!" );
             }
 
             // Kiểm tra dữ liệu đầu vào
-            if (!ModelState.IsValid)
+            if ( !ModelState.IsValid )
             {
-                return BadRequest(ModelState);
+                return BadRequest( ModelState );
             }
 
             // Tìm khách hàng
             var customer = await _context.Customers
-                .Include(c => c.Addresses) // Tải trước các địa chỉ của khách hàng
-                .FirstOrDefaultAsync(c => c.UserId == userId.Value);
+                .Include( c => c.Addresses ) // Tải trước các địa chỉ của khách hàng
+                .FirstOrDefaultAsync( c => c.UserId == userId.Value );
 
-            if (customer == null)
+            if ( customer == null )
             {
-                return NotFound("Không tìm thấy khách hàng.");
+                return NotFound( "Không tìm thấy khách hàng." );
             }
 
-            var exitingUser = await _context.Users.FindAsync(userId.Value);
-            if (exitingUser == null)
+            var exitingUser = await _context.Users.FindAsync( userId.Value );
+            if ( exitingUser == null )
             {
-                return NotFound("Người dùng ko tồn tại!");
+                return NotFound( "Người dùng ko tồn tại!" );
             }
-            var existingEmail = await _context.Users.FirstOrDefaultAsync(u => u.Email == model.Email && u.UserId != userId.Value);
-            if(existingEmail != null)
+            var existingEmail = await _context.Users.FirstOrDefaultAsync( u => u.Email == model.Email && u.UserId != userId.Value );
+            if ( existingEmail != null )
             {
-                return BadRequest("Email Này Đã Được Đăng Ký Bởi Người Dùng Khác");
+                return BadRequest( "Email Này Đã Được Đăng Ký Bởi Người Dùng Khác" );
             }
 
             // Kiểm tra xem có file ảnh hay không
-            if (model.UserImageURL != null && model.UserImageURL.Length > 0)
+            if ( model.UserImageURL != null && model.UserImageURL.Length > 0 )
             {
                 var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
-                var extension = Path.GetExtension(model.UserImageURL.FileName).ToLower();
-                if (!allowedExtensions.Contains(extension))
+                var extension = Path.GetExtension( model.UserImageURL.FileName ).ToLower();
+                if ( !allowedExtensions.Contains( extension ) )
                 {
-                    return BadRequest("Chỉ hỗ trợ các định dạng ảnh: .jpg, .jpeg, .png, .gif.");
+                    return BadRequest( "Chỉ hỗ trợ các định dạng ảnh: .jpg, .jpeg, .png, .gif." );
                 }
-                var fileName = Path.GetFileName(model.UserImageURL.FileName);
-                var filePath = Path.Combine(_uploadFolder, fileName);
+                var fileName = Path.GetFileName( model.UserImageURL.FileName );
+                var filePath = Path.Combine( _uploadFolder, fileName );
 
                 try
                 {
-                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    using ( var stream = new FileStream( filePath, FileMode.Create ) )
                     {
-                        await model.UserImageURL.CopyToAsync(stream);
+                        await model.UserImageURL.CopyToAsync( stream );
                     }
                     customer.UserImage = $"/images/{fileName}";
                 }
-                catch (Exception ex)
+                catch ( Exception ex )
                 {
-                    return StatusCode(500, $"Lỗi khi lưu hình ảnh: {ex.Message}");
+                    return StatusCode( 500, $"Lỗi khi lưu hình ảnh: {ex.Message}" );
                 }
             }
 
@@ -277,10 +277,10 @@ namespace namHub_FastFood.Controller.USER
             // Cập nhật thông tin cho người dùng
             exitingUser.UpdatedAt = DateTime.Now;
             exitingUser.FullName = model.FullName ?? exitingUser.FullName;
-            if(!string.IsNullOrEmpty(model.Email) && model.Email.ToLower() != exitingUser.Email.ToLower())
+            if ( !string.IsNullOrEmpty( model.Email ) && model.Email.ToLower() != exitingUser.Email.ToLower() )
             {
                 // Tạo mã xác thực email
-                var emailVerificationCode = Guid.NewGuid().ToString("N");
+                var emailVerificationCode = Guid.NewGuid().ToString( "N" );
 
                 exitingUser.Email = model.Email ?? exitingUser.Email;
                 exitingUser.EmailVerified = false;
@@ -298,45 +298,45 @@ namespace namHub_FastFood.Controller.USER
                 await _emailService.SendEmailAsync(
                     model.Email,
                     "Xác thực email",
-                    $"Vui lòng xác thực email của bạn bằng cách nhấp vào liên kết sau: {verificationLink}"
+                    $"Vui lòng xác thực email của bạn bằng cách nhấp vào nút dưới đây: ",
+                    verificationLink
                 );
             }
-            
 
             await _context.SaveChangesAsync();
 
-            return Ok("Cập nhật thông tin thành công.");
+            return Ok( "Cập nhật thông tin thành công." );
         }
 
-        [Authorize(Roles = "ADMIN,EMPLOYEE,DELIVER,USER")]
-        [HttpGet("get-user-addresses")]
+        [Authorize( Roles = "ADMIN,EMPLOYEE,DELIVER,USER" )]
+        [HttpGet( "get-user-addresses" )]
         public async Task<IActionResult> GetUserAddr()
         {
             // Lấy thông tin customer id từ claim của token
-            var userIdClaim = User.FindFirst("user_id")?.Value;
+            var userIdClaim = User.FindFirst( "user_id" )?.Value;
 
-            if (string.IsNullOrEmpty(userIdClaim))
+            if ( string.IsNullOrEmpty( userIdClaim ) )
             {
-                return Unauthorized("Hãy đăng nhập để xem thông tin!");
+                return Unauthorized( "Hãy đăng nhập để xem thông tin!" );
             }
 
             int userId;
-            if (!int.TryParse(userIdClaim, out userId))
+            if ( !int.TryParse( userIdClaim, out userId ) )
             {
-                return BadRequest("Không thể lấy thông tin khách hàng!");
+                return BadRequest( "Không thể lấy thông tin khách hàng!" );
             }
 
             // Tìm khách hàng và tải trước danh sách địa chỉ của họ
             var customer = await _context.Customers
-                .Include(c => c.Addresses) // Tải trước các địa chỉ của khách hàng
-                .FirstOrDefaultAsync(c => c.UserId == userId);
+                .Include( c => c.Addresses ) // Tải trước các địa chỉ của khách hàng
+                .FirstOrDefaultAsync( c => c.UserId == userId );
 
-            if (customer == null)
+            if ( customer == null )
             {
-                return NotFound("Không tìm thấy khách hàng.");
+                return NotFound( "Không tìm thấy khách hàng." );
             }
 
-            var customerAddresses = customer.Addresses.Select(address => new
+            var customerAddresses = customer.Addresses.Select( address => new
             {
                 AddressId = address.AddressId,
                 AddressLine1 = address.AddressLine1,
@@ -346,43 +346,43 @@ namespace namHub_FastFood.Controller.USER
                 IsDefault = address.IsDefault,
                 PostalCode = address.PostalCode,
                 Country = address.Country
-            }).ToList();
+            } ).ToList();
 
-            return Ok(customerAddresses);
+            return Ok( customerAddresses );
         }
 
         [Authorize]
-        [HttpPost("add-user-address")]
-        public async Task<IActionResult> AddUserAddress([FromForm]AddressDto userAddress)
+        [HttpPost( "add-user-address" )]
+        public async Task<IActionResult> AddUserAddress( [FromForm] AddressDto userAddress )
         {
             var userId = GetUserIdFromClaims();
-            if(userId == null)
+            if ( userId == null )
             {
-                return BadRequest("Vui lòng đăng nhập để xem thông tin!");
+                return BadRequest( "Vui lòng đăng nhập để xem thông tin!" );
             }
 
             // Kiểm tra dữ liệu đầu vào
-            if (!ModelState.IsValid)
+            if ( !ModelState.IsValid )
             {
-                return BadRequest(ModelState);
+                return BadRequest( ModelState );
             }
 
             // Tìm customer dựa trên userId
             var customer = await _context.Customers
-                .Include(c => c.Addresses) // phải eager load lên, nếu ko sẽ null
-                .FirstOrDefaultAsync(c => c.UserId == userId);
+                .Include( c => c.Addresses ) // phải eager load lên, nếu ko sẽ null
+                .FirstOrDefaultAsync( c => c.UserId == userId );
 
-            if (customer == null)
+            if ( customer == null )
             {
-                return NotFound("Không tìm thấy khách hàng!");
+                return NotFound( "Không tìm thấy khách hàng!" );
             }
 
             // Nếu địa chỉ mới là địa chỉ mặc định, cập nhật các địa chỉ khác của người dùng
-            if (userAddress.IsDefault == true)
+            if ( userAddress.IsDefault == true )
             {
-                foreach (var address in customer.Addresses)
+                foreach ( var address in customer.Addresses )
                 {
-                    if(address.IsDefault != false)
+                    if ( address.IsDefault != false )
                     {
                         address.IsDefault = false;
                     }
@@ -403,50 +403,50 @@ namespace namHub_FastFood.Controller.USER
                 UpdatedAt = DateTime.Now,
             };
 
-            _context.Addresses.Add(newUserAddress);
+            _context.Addresses.Add( newUserAddress );
             await _context.SaveChangesAsync();
-            
-            return Ok(newUserAddress);
+
+            return Ok( newUserAddress );
         }
 
-        [HttpPut("update-user-address/{addressId}")]
+        [HttpPut( "update-user-address/{addressId}" )]
         [Authorize]
-        public async Task<IActionResult> UpdateUserAddr(int addressId, [FromForm] AddressDto userAddress)
+        public async Task<IActionResult> UpdateUserAddr( int addressId, [FromForm] AddressDto userAddress )
         {
             var userId = GetUserIdFromClaims();
-            if (userId == null)
+            if ( userId == null )
             {
-                return BadRequest("Vui lòng đăng nhập để tiếp tục");
+                return BadRequest( "Vui lòng đăng nhập để tiếp tục" );
             }
 
-            if (!ModelState.IsValid)
+            if ( !ModelState.IsValid )
             {
-                return BadRequest(ModelState);
+                return BadRequest( ModelState );
             }
             var customer = await _context.Customers
-                .Include(c => c.Addresses) // phải eager load lên, nếu ko sẽ null
-                .FirstOrDefaultAsync(c => c.UserId == userId);
-            if (customer == null)
+                .Include( c => c.Addresses ) // phải eager load lên, nếu ko sẽ null
+                .FirstOrDefaultAsync( c => c.UserId == userId );
+            if ( customer == null )
             {
-                return NotFound("Người dùng ko tồn tại!");
+                return NotFound( "Người dùng ko tồn tại!" );
             }
 
-            if(userAddress.IsDefault == true)
+            if ( userAddress.IsDefault == true )
             {
-                foreach(var address in customer.Addresses)
+                foreach ( var address in customer.Addresses )
                 {
-                    if (address.IsDefault != false)
+                    if ( address.IsDefault != false )
                     {
                         address.IsDefault = false;
                     }
                 }
             }
             var exitingAddresses = customer.Addresses
-                .FirstOrDefault(a => a.AddressId == addressId);
+                .FirstOrDefault( a => a.AddressId == addressId );
 
-            if (exitingAddresses == null)
+            if ( exitingAddresses == null )
             {
-                return NotFound("Địa chỉ ko tồn tại!");
+                return NotFound( "Địa chỉ ko tồn tại!" );
             }
 
             exitingAddresses.UpdatedAt = DateTime.Now;
@@ -460,55 +460,55 @@ namespace namHub_FastFood.Controller.USER
 
             await _context.SaveChangesAsync();
 
-            return Ok(exitingAddresses);
-
+            return Ok( exitingAddresses );
         }
 
-        [HttpDelete("delete-user-address/{addressId}")]
+        [HttpDelete( "delete-user-address/{addressId}" )]
         [Authorize]
-        public async Task<IActionResult> DelUserAddress(int addressId)
+        public async Task<IActionResult> DelUserAddress( int addressId )
         {
             var userId = GetUserIdFromClaims();
-            if (userId == null)
+            if ( userId == null )
             {
-                return BadRequest("Vui lòng đăng nhập để tiếp tục");
+                return BadRequest( "Vui lòng đăng nhập để tiếp tục" );
             }
 
-            if (!ModelState.IsValid)
+            if ( !ModelState.IsValid )
             {
-                return BadRequest(ModelState);
+                return BadRequest( ModelState );
             }
 
             var customer = await _context.Customers
-                .Include(c => c.Addresses) // phải eager load lên, nếu ko sẽ null
-                .FirstOrDefaultAsync(c => c.UserId == userId);
-            if (customer == null)
+                .Include( c => c.Addresses ) // phải eager load lên, nếu ko sẽ null
+                .FirstOrDefaultAsync( c => c.UserId == userId );
+            if ( customer == null )
             {
-                return NotFound("Người dùng ko tồn tại!");
+                return NotFound( "Người dùng ko tồn tại!" );
             }
 
             var exitingAddresses = customer.Addresses
-                .FirstOrDefault(a => a.AddressId == addressId);
+                .FirstOrDefault( a => a.AddressId == addressId );
 
-            if (exitingAddresses == null)
+            if ( exitingAddresses == null )
             {
-                return NotFound("Địa chỉ ko tồn tại!");
+                return NotFound( "Địa chỉ ko tồn tại!" );
             }
 
-            _context.Addresses.Remove(exitingAddresses);
+            _context.Addresses.Remove( exitingAddresses );
             await _context.SaveChangesAsync();
 
-            return Ok("Xóa địa chỉ thành công!");
+            return Ok( "Xóa địa chỉ thành công!" );
         }
+
         private int? GetUserIdFromClaims()
         {
-            var userIdClaim = User.FindFirst("user_id")?.Value;
-            if (string.IsNullOrEmpty(userIdClaim))
+            var userIdClaim = User.FindFirst( "user_id" )?.Value;
+            if ( string.IsNullOrEmpty( userIdClaim ) )
             {
                 return null;
             }
 
-            if (int.TryParse(userIdClaim, out int userId))
+            if ( int.TryParse( userIdClaim, out int userId ) )
             {
                 return userId;
             }

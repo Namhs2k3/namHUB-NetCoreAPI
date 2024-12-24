@@ -25,30 +25,32 @@ namespace namHub_FastFood.Controller.DELIVER
         public async Task<IActionResult> Get()
         {
             var orders = await _context.Orders
-                .Include(o => o.Customer) // Eager loading bảng Customer
-                .ThenInclude(c => c.Addresses) // Eager loading bảng Addresses của Customer
-                .Include(o => o.Payments) // Eager loading bảng Payments
-                .Include(o => o.OrderStatusHistories) // Include OrderStatusHistories để lọc trạng thái đơn hàng
-                .Where(o => o.OrderStatusHistories
-                    .OrderByDescending(os => os.StatusDate) // Lấy trạng thái mới nhất
-                    .FirstOrDefault().Status == "Ready") // Lọc đơn hàng có trạng thái "Ready"
-                .Select(o => new
-                {
-                    o.OrderId,
-                    o.CustomerId,
-                    o.Customer.FullName,
-                    o.Customer.Phone,
-                    CustomerAddress = o.Customer.Addresses
-                        .Where(a => a.IsDefault == true)
-                        .Select(a => $"{a.AddressLine1}, {a.City}")
-                        .FirstOrDefault(), // Lấy địa chỉ mặc định
-                    o.OrderDate,
-                    o.Status,
-                    o.TotalAmount,
-                    PaymentMethod = o.Payments.FirstOrDefault().PaymentMethod // Lấy phương thức thanh toán
-                })
-                .OrderBy(o => o.OrderDate) // Sắp xếp theo ngày đặt hàng
-                .ToListAsync();
+                        .Include( o => o.Customer ) // Eager loading bảng Customer
+                        .ThenInclude( c => c.Addresses ) // Eager loading bảng Addresses của Customer
+                        .Include( o => o.Payments ) // Eager loading bảng Payments
+                        .Include( o => o.OrderStatusHistories ) // Include OrderStatusHistories để lọc trạng thái đơn hàng
+                        .Where( o => new[] { "Ready", "On Delivery" }
+                            .Contains( o.OrderStatusHistories
+                                .OrderByDescending( os => os.StatusDate ) // Lấy trạng thái mới nhất
+                                .FirstOrDefault().Status ) ) // Lọc đơn hàng có trạng thái "Ready" hoặc "On Delivery"
+                        .Select( o => new
+                        {
+                            o.OrderId,
+                            o.CustomerId,
+                            o.Customer.FullName,
+                            o.Customer.Phone,
+                            CustomerAddress = o.Customer.Addresses
+                                .Where( a => a.IsDefault == true )
+                                .Select( a => $"{a.AddressLine1}, {a.City}" )
+                                .FirstOrDefault(), // Lấy địa chỉ mặc định
+                            o.OrderDate,
+                            o.Status,
+                            o.TotalAmount,
+                            PaymentMethod = o.Payments.FirstOrDefault().PaymentMethod // Lấy phương thức thanh toán
+                        } )
+                        .OrderBy( o => o.OrderDate ) // Sắp xếp theo ngày đặt hàng
+                        .ToListAsync();
+
 
             return Ok(orders);
         }
@@ -78,7 +80,7 @@ namespace namHub_FastFood.Controller.DELIVER
                     OrderId = orderId,
                     Status = "Completed",
                     StatusDate = DateTime.Now,
-                    UpdatedBy = existingUser?.FullName
+                    UpdatedBy = existingUser?.Username,
                 };
                 _context.OrderStatusHistories.Add(newOrderStatusHistory);
                 var existingPayment = await _context.Payments.SingleOrDefaultAsync(p => p.OrderId == orderId && p.PaymentMethod == "Cash" && p.PaymentStatus == "Pending");

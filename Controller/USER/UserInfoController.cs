@@ -70,21 +70,30 @@ namespace namHub_FastFood.Controller.USER
         }
 
         [Authorize( Roles = "ADMIN,EMPLOYEE,DELIVER,USER" )]
+        [AllowAnonymous]
         [HttpGet( "get-customer-info" )]
-        public async Task<IActionResult> GetCusInfo()
+        public async Task<IActionResult> GetCusInfo(int? userIdParam)
         {
-            // Lấy thông tin customer id từ claim của token
-            var userIdClaim = User.FindFirst( "user_id" )?.Value;
-
-            if ( string.IsNullOrEmpty( userIdClaim ) )
-            {
-                return Unauthorized( "Hãy đăng nhập để xem thông tin!" );
-            }
-
             int userId;
-            if ( !int.TryParse( userIdClaim, out userId ) )
+            if ( userIdParam != null )
             {
-                return BadRequest( "Không thể lấy thông tin khách hàng!" );
+                userId = userIdParam.Value;
+            }
+            else
+            {
+                // Lấy thông tin customer id từ claim của token
+                var userIdClaim = User.FindFirst( "user_id" )?.Value;
+
+                if ( string.IsNullOrEmpty( userIdClaim ) )
+                {
+                    return Unauthorized( "Hãy đăng nhập để xem thông tin!" );
+                }
+
+
+                if ( !int.TryParse( userIdClaim, out userId ) )
+                {
+                    return BadRequest( "Không thể lấy thông tin khách hàng!" );
+                }
             }
 
             // Tìm khách hàng và tải trước các địa chỉ của họ

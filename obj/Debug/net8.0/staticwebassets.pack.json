@@ -69,6 +69,10 @@
       "PackagePath": "staticwebassets\\images\\CategoryFood\\family_friendly_big_batch_fried_chicken-e5b3e914c99bffab0fe717f89a0f43dd.jpeg"
     },
     {
+      "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\CategoryFood\\ga-ran-jollibee_1710987092.jpg",
+      "PackagePath": "staticwebassets\\images\\CategoryFood\\ga-ran-jollibee_1710987092.jpg"
+    },
+    {
       "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\CategoryFood\\nuong-pizza-bang-noi-chien-khong-dau.jpeg",
       "PackagePath": "staticwebassets\\images\\CategoryFood\\nuong-pizza-bang-noi-chien-khong-dau.jpeg"
     },
@@ -247,6 +251,10 @@
     {
       "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\png-clipart-man-wearing-blue-shirt-illustration-computer-icons-avatar-user-login-avatar-blue-child.png",
       "PackagePath": "staticwebassets\\images\\png-clipart-man-wearing-blue-shirt-illustration-computer-icons-avatar-user-login-avatar-blue-child.png"
+    },
+    {
+      "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\valorant-clove-3840x2160-16044.jpeg",
+      "PackagePath": "staticwebassets\\images\\valorant-clove-3840x2160-16044.jpeg"
     },
     {
       "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.namHub-FastFood.props",

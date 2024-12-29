@@ -96,24 +96,30 @@ namespace namHub_FastFood.Controller
 
             if ( user == null )
             {
-                return BadRequest( "Không Tìm Thấy Người Dùng!" );
+                var message = Uri.EscapeDataString( "Không Tìm Thấy Người Dùng!" );
+                return Redirect( $"http://localhost:5173/verify-email-failure?message={message}" );
             }
+
             if ( string.IsNullOrWhiteSpace( user.EmailVerificationCode ) )
             {
-                return BadRequest( "Bạn đã xác thực rồi!" );
+                var message = Uri.EscapeDataString( "Mã Xác Thực Không Hợp Lệ Hoặc Đã Được Sử Dụng!" );
+                return Redirect( $"http://localhost:5173/verify-email-failure?message={message}" );
             }
 
             if ( user.EmailVerificationCode.Trim() != code )
             {
-                return BadRequest( "Link không còn hiệu lực nữa, hãy dùng link mới nhất!" );
+                var message = Uri.EscapeDataString( "Link không còn hiệu lực nữa, hãy dùng link mới nhất!" );
+                return Redirect( $"http://localhost:5173/verify-email-failure?message={message}" );
             }
 
             user.EmailVerified = true;
             user.EmailVerificationCode = null; // Xóa mã xác thực sau khi đã xác thực
             await _context.SaveChangesAsync();
 
-            return Ok( "Email được xác thực thành công, bạn có thể đăng nhập được rồi!" );
+            var successMessage = Uri.EscapeDataString( "Email được xác thực thành công, bạn có thể đăng nhập được rồi!" );
+            return Redirect( $"http://localhost:5173/verify-email-success?message={successMessage}" );
         }
+
 
         [HttpPost( "forgot-password" )]
         public async Task<IActionResult> ForgotPassword( ForgotPasswordRequest request )

@@ -480,6 +480,18 @@ namespace namHub_FastFood.Controller.USER
                     p.IsPopular,
                     rating = p.ProductRatings.Any() ? p.ProductRatings.Average( r => r.Rating ) : 0,
                     ratingCount = p.ProductRatings.Count(),
+                    comments = p.ProductRatings.Select( r => new
+                    {
+                        r.RatingId,
+                        r.ProductId,
+                        r.Comment,
+                        r.Rating,
+                        r.UserId,
+                        r.UpdatedAt,
+                        fullName = r.User.FullName,
+                        userName = r.User.Username,
+                        isCurrentUserComment = r.UserId == GetUserIdFromClaims() // Đánh dấu comment thuộc user hiện tại
+                    } ).ToList(),
                     p.Price,
                     discountedPrice = p.DiscountedPrice ?? p.Price,
                     discountPercentage = p.DiscountPercentage ?? 0,
@@ -500,6 +512,137 @@ namespace namHub_FastFood.Controller.USER
             };
 
             return Ok( result );
+        }
+
+        [HttpPost( "create-comment" )]
+        public async Task<IActionResult> CreateComment( [FromBody] CreateCommentRequest request )
+        {
+            // Kiểm tra xem người dùng đã đăng nhập hay chưa
+            var userId = GetUserIdFromClaims();
+            if ( userId == null )
+            {
+                return Unauthorized( "Bạn cần đăng nhập để đánh giá sản phẩm." );
+            }
+
+            // Kiểm tra xem sản phẩm có tồn tại không
+            var productExists = await _context.Products.AnyAsync( p => p.ProductId == request.ProductId );
+            if ( !productExists )
+            {
+                return NotFound( "Sản phẩm không tồn tại." );
+            }
+
+            // Kiểm tra xem người dùng đã mua sản phẩm hay chưa
+            var hasPurchased = await _context.Orders
+                .Include( o => o.Customer )
+                .AnyAsync( o => o.Customer.UserId == userId && o.OrderItems.Any( od => od.ProductId == request.ProductId ) );
+            if ( !hasPurchased )
+            {
+                return BadRequest( "Bạn chỉ có thể đánh giá nếu đã mua sản phẩm." );
+            }
+
+            // Kiểm tra xem người dùng đã đánh giá sản phẩm này trước đó chưa
+            var existingComment = await _context.ProductRatings
+                .FirstOrDefaultAsync( c => c.UserId == userId && c.ProductId == request.ProductId );
+
+            if ( existingComment != null )
+            {
+                return BadRequest( "Bạn đã đánh giá sản phẩm này. Vui lòng sửa đánh giá nếu cần." );
+            }
+
+            // Tạo đánh giá mới
+            var newComment = new ProductRating
+            {
+                UserId = userId.Value,
+                ProductId = request.ProductId,
+                Rating = request.Rating,
+                Comment = request.Comment,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
+            };
+
+            _context.ProductRatings.Add( newComment );
+            await _context.SaveChangesAsync();
+
+            return Ok( "Đánh giá của bạn đã được thêm thành công." );
+        }
+
+        [HttpPut( "update-comment" )]
+        public async Task<IActionResult> UpdateComment(
+                [FromBody] UpdateCommentRequest request )
+        {
+            // Kiểm tra xem người dùng đã đăng nhập hay chưa
+            var userId = GetUserIdFromClaims();
+            if ( userId == null )
+            {
+                return Unauthorized( "Bạn cần đăng nhập để sửa bình luận." );
+            }
+
+            // Kiểm tra xem bình luận có tồn tại không
+            var comment = await _context.ProductRatings
+                .FirstOrDefaultAsync( c => c.RatingId == request.CommentId && c.UserId == userId );
+
+            if ( comment == null )
+            {
+                return NotFound( "Bình luận không tồn tại hoặc bạn không có quyền sửa bình luận này." );
+            }
+
+            // Kiểm tra xem người dùng đã mua sản phẩm hay chưa
+            var hasPurchased = await _context.Orders
+                .Include( o => o.Customer )
+                .AnyAsync( o => o.Customer.UserId == userId && o.OrderItems.Any( od => od.ProductId == comment.ProductId ) );
+            if ( !hasPurchased )
+            {
+                return BadRequest( "Bạn chỉ có thể bình luận nếu đã mua sản phẩm." );
+            }
+
+            // Cập nhật bình luận
+            comment.Rating = request.Rating;
+            comment.Comment = request.Comment;
+            comment.UpdatedAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+
+            return Ok( "Bình luận đã được cập nhật thành công." );
+        }
+
+        [HttpDelete( "delete-comment/{commentId}" )]
+        public async Task<IActionResult> DeleteComment( int commentId )
+        {
+            // Kiểm tra xem người dùng đã đăng nhập hay chưa
+            var userId = GetUserIdFromClaims();
+            if ( userId == null )
+            {
+                return Unauthorized( "Bạn cần đăng nhập để xóa bình luận." );
+            }
+
+            // Kiểm tra xem bình luận có tồn tại không
+            var comment = await _context.ProductRatings
+                .FirstOrDefaultAsync( c => c.RatingId == commentId && c.UserId == userId );
+
+            if ( comment == null )
+            {
+                return NotFound( "Bình luận không tồn tại hoặc bạn không có quyền xóa bình luận này." );
+            }
+
+            // Xóa bình luận
+            _context.ProductRatings.Remove( comment );
+            await _context.SaveChangesAsync();
+
+            return Ok( "Bình luận đã được xóa thành công." );
+        }
+
+
+        public class CreateCommentRequest
+        {
+            public int ProductId { get; set; }
+            public byte Rating { get; set; } // Giá trị từ 1 đến 5
+            public string Comment { get; set; }
+        }
+        public class UpdateCommentRequest
+        {
+            public int CommentId { get; set; }
+            public byte Rating { get; set; }
+            public string Comment { get; set; }
         }
 
         [HttpPost( "add-to-cart" )]
@@ -568,6 +711,7 @@ namespace namHub_FastFood.Controller.USER
         }
 
         [Authorize]
+        [AllowAnonymous]
         [HttpGet( "get-cus-cart-items" )]
         public async Task<IActionResult> GetCusCartItems()
         {
@@ -598,9 +742,10 @@ namespace namHub_FastFood.Controller.USER
                     ci.Product.ImageUrl,
                     ci.Quantity,
                     ci.Price,
+                    ci.UpdatedAt,
                     DiscountedPrice = ci.Product.DiscountedPrice ?? ci.Price,
                     DiscountPercentage = ci.Product.DiscountPercentage ?? 0,
-                } ).ToList();
+                } ).OrderByDescending(ci=>ci.UpdatedAt).ToList();
 
             return Ok( cartItems );
         }

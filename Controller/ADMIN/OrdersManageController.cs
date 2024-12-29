@@ -42,6 +42,8 @@ namespace namHub_FastFood.Controller.ADMIN
             {
                 ordersQuery = ordersQuery.Where( o => o.Status == status );
             }
+            // Thêm điều kiện lọc PaymentStatus == "Completed"
+            ordersQuery = ordersQuery.Where( o => o.Payments.Any( p => p.PaymentStatus == "Completed" && p.PaymentMethod == "VNPay" || p.PaymentMethod == "Cash") );
 
             // Query ánh xạ kết quả
             var orders = await ordersQuery

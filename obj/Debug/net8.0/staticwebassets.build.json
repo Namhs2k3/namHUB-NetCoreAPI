@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "otGEF4ZBIR4ZL2Mq9PJmgjGBBJRNtxWYsDM6ToZ+9lk=",
+  "Hash": "pAQPKL5KX4Nft+vNE9YNk2s2vxF2FFyV+m7sx85CJ3s=",
   "Source": "namHub-FastFood",
   "BasePath": "_content/namHub-FastFood",
   "Mode": "Default",
@@ -319,6 +319,25 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\images\\CategoryFood\\Ga_ran.png"
+    },
+    {
+      "Identity": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\CategoryFood\\ga-ran-jollibee_1710987092.jpg",
+      "SourceId": "namHub-FastFood",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\",
+      "BasePath": "_content/namHub-FastFood",
+      "RelativePath": "images/CategoryFood/ga-ran-jollibee_1710987092.jpg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\images\\CategoryFood\\ga-ran-jollibee_1710987092.jpg"
     },
     {
       "Identity": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\CategoryFood\\nuong-pizza-bang-noi-chien-khong-dau.jpeg",
@@ -1193,6 +1212,25 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\images\\png-clipart-man-wearing-blue-shirt-illustration-computer-icons-avatar-user-login-avatar-blue-child.png"
+    },
+    {
+      "Identity": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\valorant-clove-3840x2160-16044.jpeg",
+      "SourceId": "namHub-FastFood",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\",
+      "BasePath": "_content/namHub-FastFood",
+      "RelativePath": "images/valorant-clove-3840x2160-16044.jpeg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\images\\valorant-clove-3840x2160-16044.jpeg"
     }
   ]
 }

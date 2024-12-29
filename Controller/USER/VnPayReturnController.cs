@@ -45,14 +45,16 @@ namespace namHub_FastFood.Controller.USER
                 if (!long.TryParse(txnRef, out long orderId))
                 {
                     _logger.LogError("Invalid Order ID: {TxnRef}", txnRef);
-                    return BadRequest("Invalid Order ID.");
+                    //return BadRequest("Invalid Order ID.");
+                    return Redirect( "http://localhost:5173/order-failure" );
                 }
 
                 string vnpayTranIdStr = vnpay.GetResponseData("vnp_TransactionNo");
                 if (!long.TryParse(vnpayTranIdStr, out long vnpayTranId))
                 {
                     _logger.LogError("Invalid Transaction No: {vnp_TransactionNo}", vnpayTranIdStr);
-                    return BadRequest("Invalid Transaction No.");
+                    //return BadRequest("Invalid Transaction No.");
+                    return Redirect( "http://localhost:5173/order-failure" );
                 }
 
                 string vnp_ResponseCode = vnpay.GetResponseData("vnp_ResponseCode");
@@ -77,7 +79,8 @@ namespace namHub_FastFood.Controller.USER
                         if (order == null)
                         {
                             _logger.LogError("Order not found: {OrderId}", orderId);
-                            return BadRequest("Order not found.");
+                            //return BadRequest("Order not found.");
+                            return Redirect( "http://localhost:5173/order-failure" );
                         }
 
                         if (vnp_ResponseCode == "00" && vnp_TransactionStatus == "00")
@@ -141,17 +144,19 @@ namespace namHub_FastFood.Controller.USER
                                 await _context.SaveChangesAsync();
                                 await transaction.CommitAsync();
 
-                                return Ok(new
-                                {
-                                    Message = "Thanh toán thành công!",
-                                    OrderId = orderId,
-                                    PaymentStatus = payment.PaymentStatus
-                                });
+                                //return Ok(new
+                                //{
+                                //    Message = "Thanh toán thành công!",
+                                //    OrderId = orderId,
+                                //    PaymentStatus = payment.PaymentStatus
+                                //});
+                                return Redirect( $"http://localhost:5173/order-success?orderId={orderId}" );
                             }
                             else
                             {
                                 _logger.LogWarning("No pending payment found for OrderId={OrderId}", orderId);
-                                return BadRequest("No pending payment found for this order.");
+                                //return BadRequest("No pending payment found for this order.");
+                                return Redirect( "http://localhost:5173/order-failure" );
                             }
                         }
                         else
@@ -193,25 +198,29 @@ namespace namHub_FastFood.Controller.USER
                                 BankCode = bankCode
                             };
 
-                            return BadRequest(errorResponse);
+                            //return BadRequest(errorResponse);
+                            return Redirect( "http://localhost:5173/order-failure" );
                         }
                     }
                     catch (Exception ex)
                     {
                         await transaction.RollbackAsync();
                         _logger.LogError(ex, "Error processing VNPay return for OrderId={OrderId}", orderId);
-                        return StatusCode(500, "Đã xảy ra lỗi khi xử lý thanh toán.");
+                        //return StatusCode(500, "Đã xảy ra lỗi khi xử lý thanh toán.");
+                        return Redirect( "http://localhost:5173/order-failure" );
                     }
                 }
                 else
                 {
                     _logger.LogInformation("Chữ ký không hợp lệ, InputData={InputData}", Request.Path + Request.QueryString);
-                    return BadRequest(new { Message = "Chữ ký không hợp lệ." });
+                    //return BadRequest(new { Message = "Chữ ký không hợp lệ." });
+                    return Redirect( "http://localhost:5173/order-failure" );
                 }
             }
             else
             {
-                return BadRequest(new { Message = "Không có dữ liệu đầu vào." });
+                //return BadRequest(new { Message = "Không có dữ liệu đầu vào." });
+                return Redirect( "http://localhost:5173/order-failure" );
             }
         }
     }

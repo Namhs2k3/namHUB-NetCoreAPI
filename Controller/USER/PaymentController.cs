@@ -259,16 +259,18 @@ namespace namHub_FastFood.Controller.USER
                     // Hoàn thành giao dịch
                     await transaction.CommitAsync();
 
-                    return Ok(new CheckoutResponse
-                    {
-                        Message = "Đơn hàng đã được tạo, vui lòng thanh toán khi nhận hàng!",
-                        OrderId = newOrder.OrderId,
-                        TotalAmount = totalAmount,
-                        DiscountAmount = discountAmount,
-                        TotalAfterDiscount = totalAfterDiscount,
-                        PaymentMethod = "Cash",
-                        PaymentStatus = "Pending"
-                    });
+                    //return Ok(new CheckoutResponse
+                    //{
+                    //    Message = "Đơn hàng đã được tạo, vui lòng thanh toán khi nhận hàng!",
+                    //    OrderId = newOrder.OrderId,
+                    //    TotalAmount = totalAmount,
+                    //    DiscountAmount = discountAmount,
+                    //    TotalAfterDiscount = totalAfterDiscount,
+                    //    PaymentMethod = "Cash",
+                    //    PaymentStatus = "Pending"
+                    //});
+                    return Ok( new { RedirectUrl = $"http://localhost:5173/order-success?orderId={newOrder.OrderId}" } );
+
                 }
                 else
                 {
@@ -279,12 +281,16 @@ namespace namHub_FastFood.Controller.USER
             {
                 string errorMessage = dbEx.InnerException != null ? dbEx.InnerException.Message : dbEx.Message;
                 await transaction.RollbackAsync();
-                return StatusCode(500, $"Đã xảy ra lỗi khi lưu dữ liệu: {errorMessage}");
+                //return StatusCode(500, $"Đã xảy ra lỗi khi lưu dữ liệu: {errorMessage}");
+                return Ok( new { RedirectUrl = "http://localhost:5173/order-failure" } );
+
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                return StatusCode(500, $"Đã xảy ra lỗi: {ex.Message}");
+                //return StatusCode(500, $"Đã xảy ra lỗi: {ex.Message}");
+                return Ok( new { RedirectUrl = "http://localhost:5173/order-failure" } );
+
             }
         }
 

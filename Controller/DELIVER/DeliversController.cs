@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using namHub_FastFood.HUBs;
 using namHub_FastFood.Models;
 
 namespace namHub_FastFood.Controller.DELIVER
@@ -13,10 +15,12 @@ namespace namHub_FastFood.Controller.DELIVER
     {
         private readonly namHUBDbContext _context;
         private readonly ILogger<DeliversController> _logger;
-        public DeliversController(namHUBDbContext context, ILogger<DeliversController> logger)
+        private readonly IHubContext<OrderHub> _hubContext;
+        public DeliversController(namHUBDbContext context, ILogger<DeliversController> logger, IHubContext<OrderHub> hubContext )
         {
             _context = context;
             _logger = logger;
+            _hubContext = hubContext;
         }
 
         // Xem đơn hàng nào đang đợi đc giao
@@ -24,6 +28,8 @@ namespace namHub_FastFood.Controller.DELIVER
         [HttpGet("get-orders-list-for-deliver")]
         public async Task<IActionResult> Get()
         {
+            var userId = GetUserIdFromClaims();
+            var deliverInfo = await _context.Users.FirstOrDefaultAsync( u => u.UserId == userId );
             var orders = await _context.Orders
                         .Include( o => o.Customer ) // Eager loading bảng Customer
                         .ThenInclude( c => c.Addresses ) // Eager loading bảng Addresses của Customer
@@ -46,7 +52,8 @@ namespace namHub_FastFood.Controller.DELIVER
                             o.OrderDate,
                             o.Status,
                             o.TotalAmount,
-                            PaymentMethod = o.Payments.FirstOrDefault().PaymentMethod // Lấy phương thức thanh toán
+                            PaymentMethod = o.Payments.FirstOrDefault().PaymentMethod, // Lấy phương thức thanh toán
+                            isByThisUser = o.OrderStatusHistories.FirstOrDefault(o=>o.Status == "On Delivery").UpdatedBy == deliverInfo.Username
                         } )
                         .OrderBy( o => o.OrderDate ) // Sắp xếp theo ngày đặt hàng
                         .ToListAsync();
@@ -91,6 +98,8 @@ namespace namHub_FastFood.Controller.DELIVER
                 
 
                 await _context.SaveChangesAsync();
+                // Gửi thông báo qua SignalR
+                await _hubContext.Clients.All.SendAsync( "OrderUpdated", orderId );
                 await transaction.CommitAsync();
             }
             catch (Exception ex)

@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using namHub_FastFood.HUBs;
 using namHub_FastFood.Models;
 
 namespace namHub_FastFood.Controller.ADMIN
@@ -11,18 +13,24 @@ namespace namHub_FastFood.Controller.ADMIN
     public class OrdersManageController : ControllerBase
     {
         private readonly namHUBDbContext _context;
+        private readonly IHubContext<OrderHub> _hubContext;
 
-        public OrdersManageController( namHUBDbContext context )
+        public OrdersManageController( namHUBDbContext context, IHubContext<OrderHub> hubContext )
         {
             _context = context;
+            _hubContext = hubContext;
         }
 
         [HttpGet( "get-orders-list" )]
         [Authorize( Roles = "ADMIN, EMPLOYEE" )]
-        public async Task<IActionResult> Get( [FromQuery] string? status )
+        public async Task<IActionResult> Get( [FromQuery] string? status,
+                                    [FromQuery] DateTime? startDate,
+                                    [FromQuery] DateTime? endDate,
+                                    [FromQuery] string? deliverName,
+                                    [FromQuery] string? userName )
         {
             // Danh sách trạng thái hợp lệ (có thể khai báo tĩnh để tái sử dụng)
-            var validStatuses = new[] { "Pending", "Completed", "Failed", "Preparing", "On Delivery", "Ready" };
+            var validStatuses = new[] { "Pending", "Completed", "Failed", "Preparing", "On Delivery", "Ready", "Refunded" };
 
             // Kiểm tra giá trị status
             if ( !string.IsNullOrEmpty( status ) && !validStatuses.Contains( status ) )
@@ -35,7 +43,8 @@ namespace namHub_FastFood.Controller.ADMIN
                 .Include( o => o.Customer )
                 .ThenInclude( c => c.Addresses )
                 .Include( o => o.Payments )
-                .AsQueryable(); // Đảm bảo query vẫn có thể tiếp tục xử lý
+                .Include( o => o.OrderStatusHistories )
+                .AsQueryable();
 
             // Lọc theo status nếu có
             if ( !string.IsNullOrEmpty( status ) )
@@ -43,7 +52,31 @@ namespace namHub_FastFood.Controller.ADMIN
                 ordersQuery = ordersQuery.Where( o => o.Status == status );
             }
             // Thêm điều kiện lọc PaymentStatus == "Completed"
-            ordersQuery = ordersQuery.Where( o => o.Payments.Any( p => p.PaymentStatus == "Completed" && p.PaymentMethod == "VNPay" || p.PaymentMethod == "Cash") );
+            ordersQuery = ordersQuery.Where( o => o.Payments.Any( p => p.PaymentStatus == "Completed" && p.PaymentMethod == "VNPay" || p.PaymentMethod == "Cash" ) );
+
+            // Lọc theo khoảng thời gian (nếu có)
+            if ( startDate.HasValue )
+            {
+                ordersQuery = ordersQuery.Where( o => o.OrderDate >= startDate.Value );
+            }
+            if ( endDate.HasValue )
+            {
+                ordersQuery = ordersQuery.Where( o => o.OrderDate <= endDate.Value );
+            }
+
+            // Lọc theo tên deliver (nếu có)
+            if ( !string.IsNullOrEmpty( deliverName ) )
+            {
+                ordersQuery = ordersQuery.Where( o =>
+                    o.OrderStatusHistories.Any( h =>
+                        ( h.Status == "Completed" ) && h.UpdatedBy.Replace( " ", "" ).Contains( deliverName.Replace( " ", "" ) ) ) );
+            }
+
+            if ( !string.IsNullOrEmpty( userName ) )
+            {
+                ordersQuery = ordersQuery.Where( o =>
+                    o.Customer.FullName.Replace( " ", "" ).Contains( userName.Replace( " ", "" ) ) );
+            }
 
             // Query ánh xạ kết quả
             var orders = await ordersQuery
@@ -65,6 +98,7 @@ namespace namHub_FastFood.Controller.ADMIN
                     o.DiscountCodeUsed,
                     o.DiscountAmount,
                     o.TotalAfterDiscount,
+                    byDeliver = o.OrderStatusHistories.OrderByDescending( o => o.StatusDate ).FirstOrDefault().UpdatedBy,
                     // Lấy Payment cuối cùng (nếu có)
                     Payment = o.Payments.OrderByDescending( p => p.PaymentDate ).FirstOrDefault(),
                     // Trạng thái thanh toán
@@ -149,6 +183,10 @@ namespace namHub_FastFood.Controller.ADMIN
             try
             {
                 await _context.SaveChangesAsync();
+
+                // Gửi thông báo qua SignalR
+                await _hubContext.Clients.All.SendAsync( "OrderUpdated", orderId, status );
+
                 return Ok( new { Message = "Order status updated successfully." } );
             }
             catch ( Exception ex )

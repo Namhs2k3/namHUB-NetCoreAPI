@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using namHub_FastFood.HUBs;
 using namHub_FastFood.Models;
 
 namespace namHub_FastFood.Controller.USER
@@ -12,12 +14,14 @@ namespace namHub_FastFood.Controller.USER
         private readonly ILogger<VnPayReturnController> _logger;
         private readonly IConfiguration _configuration;
         private readonly namHUBDbContext _context;
+        private readonly IHubContext<OrderHub> _hubContext;
 
-        public VnPayReturnController(ILogger<VnPayReturnController> logger, IConfiguration configuration, namHUBDbContext context)
+        public VnPayReturnController(ILogger<VnPayReturnController> logger, IConfiguration configuration, namHUBDbContext context, IHubContext<OrderHub> hubContext )
         {
             _context = context;
             _logger = logger;
             _configuration = configuration;
+            _hubContext = hubContext;
         }
 
         [HttpGet("return")]
@@ -142,6 +146,8 @@ namespace namHub_FastFood.Controller.USER
 
                                 // Lưu thay đổi vào database
                                 await _context.SaveChangesAsync();
+                                // Gửi thông báo qua SignalR
+                                await _hubContext.Clients.All.SendAsync( "OrderSuccess", orderId );
                                 await transaction.CommitAsync();
 
                                 //return Ok(new

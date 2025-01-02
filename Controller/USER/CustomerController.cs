@@ -82,13 +82,14 @@ namespace namHub_FastFood.Controller.USER
                         OrderHistoryStatus = order.OrderStatusHistories.OrderByDescending( o => o.StatusDate ).FirstOrDefault() != null
                                              ? order.OrderStatusHistories.OrderByDescending( o => o.StatusDate ).FirstOrDefault().Status
                                              : null,
+                        StatusUpdatedAt = order.OrderStatusHistories.OrderByDescending(o=>o.StatusDate).FirstOrDefault().StatusDate,
                         OrderPayMethod = order.Payments.FirstOrDefault() != null
                                          ? order.Payments.FirstOrDefault().PaymentMethod
                                          : null,
                         OrderPayStatus = order.Payments.FirstOrDefault().PaymentStatus == "Completed" ? "Đã Thanh Toán" :
                                         order.Payments.FirstOrDefault().PaymentStatus == "Failed" ? "Thanh Toán Thất Bại" :
                                         "Chưa Thanh Toán"
-                    } ).ToList() // Chuyển về danh sách đơn hàng
+                    } ).OrderByDescending(o=>o.StatusUpdatedAt).ToList() // Chuyển về danh sách đơn hàng
                 } )
                 .ToListAsync();
 

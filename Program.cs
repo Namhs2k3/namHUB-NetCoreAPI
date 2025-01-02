@@ -2,18 +2,19 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models; // Thêm dòng này
+using namHub_FastFood.HUBs;
 using namHub_FastFood.Models;
 using System.Text;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder( args );
 
 // Add services to the container.
 
 builder.Services.AddControllers()
-    .AddJsonOptions(options => // để chuyển đổi json ko bị lỗi vòng tuần hoàn vô hạn
+    .AddJsonOptions( options => // để chuyển đổi json ko bị lỗi vòng tuần hoàn vô hạn
     {
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
-    });
+    } );
 // Thêm dịch vụ CORS vào container DI
 //builder.Services.AddCors(options =>
 //{
@@ -25,23 +26,22 @@ builder.Services.AddControllers()
 //                   .AllowAnyHeader();
 //        });
 //});
-builder.Services.AddCors(options =>
+builder.Services.AddCors( options =>
 {
-    options.AddPolicy("AllowSpecificOrigins",
+    options.AddPolicy( "AllowSpecificOrigins",
         builder =>
         {
-            builder.WithOrigins("http://localhost:3000", "http://localhost:5173") // Chỉ định origin cụ thể
+            builder.WithOrigins( "http://localhost:3000", "http://localhost:5173" ) // Chỉ định origin cụ thể
                    .AllowAnyMethod()
                    .AllowAnyHeader()
                    .AllowCredentials(); // Cho phép credentials
-        });
-});
-
+        } );
+} );
 
 // Add Authentication
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+builder.Services.AddAuthentication( JwtBearerDefaults.AuthenticationScheme )
     // Add JWT
-    .AddJwtBearer(options =>
+    .AddJwtBearer( options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
@@ -51,38 +51,39 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+            IssuerSigningKey = new SymmetricSecurityKey( Encoding.UTF8.GetBytes( builder.Configuration["Jwt:Key"] ) )
         };
-    });
+    } );
 // Cấu Hình Cookies
-builder.Services.ConfigureApplicationCookie(options =>
+builder.Services.ConfigureApplicationCookie( options =>
 {
     options.Cookie.HttpOnly = true;
-    options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+    options.ExpireTimeSpan = TimeSpan.FromMinutes( 60 );
     options.LoginPath = "/login";
     options.AccessDeniedPath = "/access-denied";
     options.SlidingExpiration = true;
-});
+} );
 
 builder.Services.AddAuthorization();
 //builder.Services.AddHttpContextAccessor(); // đây là cách 1 (ngắn gọn dễ hiểu hơn, được khuyến nghị hơn)
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>(); // đây là cách 2 (chi tiết hơn, rõ ràng hơn)
-
+// Đăng ký SignalR
+builder.Services.AddSignalR();
 // Đăng ký DbContext
-builder.Services.AddDbContext<namHUBDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContext<namHUBDbContext>( options =>
+    options.UseSqlServer( builder.Configuration.GetConnectionString( "DefaultConnection" ) ) );
 
 // Cấu hình dịch vụ gửi email
 builder.Services.AddTransient<IEmailService, EmailService>();
 builder.Services.AddScoped<VnPayService>(); // Đăng ký VnPayService
 
 // Cấu hình Swagger để hỗ trợ Bearer Token
-builder.Services.AddSwaggerGen(c =>
+builder.Services.AddSwaggerGen( c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
+    c.SwaggerDoc( "v1", new OpenApiInfo { Title = "My API", Version = "v1" } );
 
     // Cấu hình Bearer Token trong Swagger
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    c.AddSecurityDefinition( "Bearer", new OpenApiSecurityScheme
     {
         In = ParameterLocation.Header,
         Description = "Vui lòng nhập token vào đây theo định dạng này (\"{token}\")",
@@ -90,9 +91,9 @@ builder.Services.AddSwaggerGen(c =>
         Type = SecuritySchemeType.Http,
         BearerFormat = "JWT",
         Scheme = "Bearer"
-    });
+    } );
 
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    c.AddSecurityRequirement( new OpenApiSecurityRequirement
     {
         {
             new OpenApiSecurityScheme
@@ -105,8 +106,8 @@ builder.Services.AddSwaggerGen(c =>
             },
             Array.Empty<string>()
         }
-    });
-});
+    } );
+} );
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -118,11 +119,11 @@ var app = builder.Build();
 
 // Sử dụng chính sách CORS
 //app.UseCors("AllowAllOrigins");
-app.UseCors("AllowSpecificOrigins");
+app.UseCors( "AllowSpecificOrigins" );
 
 app.UseStaticFiles(); // Enable serving static files
 
-if (app.Environment.IsDevelopment())
+if ( app.Environment.IsDevelopment() )
 {
     app.UseSwagger();
     app.UseSwaggerUI();
@@ -134,5 +135,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+// Map SignalR Hub
+app.MapHub<OrderHub>( "/orderHub" );
 
 app.Run();

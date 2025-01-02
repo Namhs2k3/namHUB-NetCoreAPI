@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using namHub_FastFood.HUBs;
 using namHub_FastFood.Models;
 
 namespace namHub_FastFood.Controller.USER
@@ -13,12 +15,14 @@ namespace namHub_FastFood.Controller.USER
         private readonly VnPayService _vnPayService;
         private readonly namHUBDbContext _context;
         private readonly IConfiguration _configure;
+        private readonly IHubContext<OrderHub> _hubContext;
 
-        public PaymentController(VnPayService vnPayService, namHUBDbContext context, IConfiguration configure)
+        public PaymentController(VnPayService vnPayService, namHUBDbContext context, IConfiguration configure, IHubContext<OrderHub> hubContext )
         {
             _vnPayService = vnPayService;
             _context = context;
             _configure = configure;
+            _hubContext = hubContext;
         }
 
         [HttpPost("create-payment")]
@@ -174,7 +178,7 @@ namespace namHub_FastFood.Controller.USER
                         OrderId = newOrder.OrderId,
                         Status = "Pending",
                         StatusDate = DateTime.Now,
-                        UpdatedBy = "System via VNPayment"
+                        UpdatedBy = "VNPay"
                     };
                     _context.OrderStatusHistories.Add(orderStatusHistory);
                     await _context.SaveChangesAsync();
@@ -216,7 +220,7 @@ namespace namHub_FastFood.Controller.USER
                         OrderId = newOrder.OrderId,
                         Status = "Pending",
                         StatusDate = DateTime.Now,
-                        UpdatedBy = "System via Cash Payment"
+                        UpdatedBy = "Cash"
                     };
                     _context.OrderStatusHistories.Add(orderStatusHistory);
                     await _context.SaveChangesAsync();
@@ -255,7 +259,8 @@ namespace namHub_FastFood.Controller.USER
                     _context.CartItems.RemoveRange(existingCart.CartItems);
                     _context.Carts.Remove(existingCart);
                     await _context.SaveChangesAsync();
-
+                    // Gửi thông báo qua SignalR
+                    await _hubContext.Clients.All.SendAsync( "OrderSuccess", newOrder.OrderId );
                     // Hoàn thành giao dịch
                     await transaction.CommitAsync();
 

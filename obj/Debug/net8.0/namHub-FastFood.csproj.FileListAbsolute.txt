@@ -141,3 +141,4 @@ C:\Users\pnn10\source\repos\Web_Net_Core\namHUB\namHub-FastFood\bin\Debug\net8.0
 C:\Users\pnn10\source\repos\Web_Net_Core\namHUB\namHub-FastFood\bin\Debug\net8.0\namHub-FastFood.staticwebassets.runtime.json
 C:\Users\pnn10\source\repos\Web_Net_Core\namHUB\namHub-FastFood\bin\Debug\net8.0\Newtonsoft.Json.dll
 C:\Users\pnn10\source\repos\Web_Net_Core\namHUB\namHub-FastFood\bin\Debug\net8.0\System.Net.WebSockets.WebSocketProtocol.dll
+C:\Users\pnn10\source\repos\Web_Net_Core\namHUB\namHub-FastFood\bin\Debug\net8.0\package.json

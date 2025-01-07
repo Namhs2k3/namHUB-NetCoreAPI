@@ -120,6 +120,12 @@ namespace namHub_FastFood.Controller.USER
                 {
                     oi.OrderItemId,
                     ProductName = oi.Product.ProductName,
+                    CustomerName = oi.Order.Customer.FullName,
+                    CustomerPhone = oi.Order.Customer.Phone,
+                    CustomerAddress = oi.Order.Customer.Addresses
+                    .Where(a => a.IsDefault == true)
+                    .Select(a => $"{a.AddressLine1}, {a.City}, {a.Country}")
+                    .FirstOrDefault(),
                     oi.UnitPrice,
                     oi.Quantity,
                     oi.TotalPrice,

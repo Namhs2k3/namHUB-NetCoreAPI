@@ -113,6 +113,14 @@
       "PackagePath": "staticwebassets\\images\\Food\\GaChienXu.jpg"
     },
     {
+      "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\Food\\Ga_gion_khong_xuong___6_mieng.png",
+      "PackagePath": "staticwebassets\\images\\Food\\Ga_gion_khong_xuong___6_mieng.png"
+    },
+    {
+      "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\Food\\Screenshot_2025-01-07_025640-removebg-preview.png",
+      "PackagePath": "staticwebassets\\images\\Food\\Screenshot_2025-01-07_025640-removebg-preview.png"
+    },
+    {
       "Id": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\Food\\burger-bo.jpeg",
       "PackagePath": "staticwebassets\\images\\Food\\burger-bo.jpeg"
     },

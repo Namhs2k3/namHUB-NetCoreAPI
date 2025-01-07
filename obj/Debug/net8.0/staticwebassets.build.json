@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "ovesDG7wqLHOPyS4mOEC9Hg7fqR9AvNHAF+J6/mxm8U=",
+  "Hash": "ABvnOyHB3bR9ZONE4AbbEIPWpSqumSI1kbhwdpZA34A=",
   "Source": "namHub-FastFood",
   "BasePath": "_content/namHub-FastFood",
   "Mode": "Default",
@@ -777,6 +777,25 @@
       "OriginalItemSpec": "wwwroot\\images\\Food\\drink-tra-dao.jpg"
     },
     {
+      "Identity": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\Food\\Ga_gion_khong_xuong___6_mieng.png",
+      "SourceId": "namHub-FastFood",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\",
+      "BasePath": "_content/namHub-FastFood",
+      "RelativePath": "images/Food/Ga_gion_khong_xuong___6_mieng.png",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\images\\Food\\Ga_gion_khong_xuong___6_mieng.png"
+    },
+    {
       "Identity": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\Food\\gachiencay.jpg",
       "SourceId": "namHub-FastFood",
       "SourceType": "Discovered",
@@ -1003,6 +1022,25 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\images\\Food\\pizza2.jpg"
+    },
+    {
+      "Identity": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\Food\\Screenshot_2025-01-07_025640-removebg-preview.png",
+      "SourceId": "namHub-FastFood",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\",
+      "BasePath": "_content/namHub-FastFood",
+      "RelativePath": "images/Food/Screenshot_2025-01-07_025640-removebg-preview.png",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\images\\Food\\Screenshot_2025-01-07_025640-removebg-preview.png"
     },
     {
       "Identity": "C:\\Users\\pnn10\\source\\repos\\Web_Net_Core\\namHUB\\namHub-FastFood\\wwwroot\\images\\Food\\snack-banh-gao-cay.png",

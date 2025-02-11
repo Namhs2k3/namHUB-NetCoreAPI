@@ -16,12 +16,14 @@ namespace namHub_FastFood.Controller
         private readonly namHUBDbContext _context;
         private readonly IEmailService _emailService;
         private readonly ILogger<UserAccountController> _logger;
+        private readonly IConfiguration _configure;
 
-        public UserAccountController( namHUBDbContext context, IEmailService emailService, ILogger<UserAccountController> logger )
+        public UserAccountController( namHUBDbContext context, IEmailService emailService, ILogger<UserAccountController> logger, IConfiguration configure )
         {
             _context = context;
             _emailService = emailService;
             _logger = logger;
+            _configure = configure;
         }
 
         [HttpPost( "register" )]
@@ -48,8 +50,8 @@ namespace namHub_FastFood.Controller
                 Salt = salt,
                 Email = request.Email,
                 FullName = request.FullName,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now,
+                CreatedAt = DateTime.UtcNow.AddHours( 7 ),
+                UpdatedAt = DateTime.UtcNow.AddHours( 7 ),
                 EmailVerified = false, // Đặt trạng thái xác thực email là false
                 EmailVerificationCode = emailVerificationCode.Trim() // Lưu mã xác thực email
             };
@@ -97,19 +99,19 @@ namespace namHub_FastFood.Controller
             if ( user == null )
             {
                 var message = Uri.EscapeDataString( "Không Tìm Thấy Người Dùng!" );
-                return Redirect( $"http://localhost:5173/verify-email-failure?message={message}" );
+                return Redirect( $"{_configure["FrontEndUrl"]}/verify-email-failure?message={message}" );
             }
 
             if ( string.IsNullOrWhiteSpace( user.EmailVerificationCode ) )
             {
                 var message = Uri.EscapeDataString( "Mã Xác Thực Không Hợp Lệ Hoặc Đã Được Sử Dụng!" );
-                return Redirect( $"http://localhost:5173/verify-email-failure?message={message}" );
+                return Redirect( $"{_configure["FrontEndUrl"]}/verify-email-failure?message={message}" );
             }
 
             if ( user.EmailVerificationCode.Trim() != code )
             {
                 var message = Uri.EscapeDataString( "Link không còn hiệu lực nữa, hãy dùng link mới nhất!" );
-                return Redirect( $"http://localhost:5173/verify-email-failure?message={message}" );
+                return Redirect( $"{_configure["FrontEndUrl"]}/verify-email-failure?message={message}" );
             }
 
             user.EmailVerified = true;
@@ -117,9 +119,8 @@ namespace namHub_FastFood.Controller
             await _context.SaveChangesAsync();
 
             var successMessage = Uri.EscapeDataString( "Email được xác thực thành công, bạn có thể đăng nhập được rồi!" );
-            return Redirect( $"http://localhost:5173/verify-email-success?message={successMessage}" );
+            return Redirect( $"{_configure["FrontEndUrl"]}/verify-email-success?message={successMessage}" );
         }
-
 
         [HttpPost( "forgot-password" )]
         public async Task<IActionResult> ForgotPassword( ForgotPasswordRequest request )
@@ -132,7 +133,7 @@ namespace namHub_FastFood.Controller
 
             // Tạo mã xác thực
             var resetToken = Guid.NewGuid().ToString( "N" );
-            var expiresAt = DateTime.Now.AddHours( 1 ); // Thay đổi thời gian hết hạn theo yêu cầu
+            var expiresAt = DateTime.UtcNow.AddHours( 7 ).AddHours( 1 ); // Thay đổi thời gian hết hạn theo yêu cầu
 
             // Lưu mã xác thực vào cơ sở dữ liệu
             var resetPasswordToken = new ResetPasswordToken
@@ -140,7 +141,7 @@ namespace namHub_FastFood.Controller
                 UserId = user.UserId,
                 Token = resetToken,
                 ExpiresAt = expiresAt,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow.AddHours( 7 )
             };
             _context.ResetPasswordTokens.Add( resetPasswordToken );
             await _context.SaveChangesAsync();
@@ -170,7 +171,7 @@ namespace namHub_FastFood.Controller
             }
 
             var authToken = await _context.ResetPasswordTokens
-                .Where( t => t.Token == request.Token && t.ExpiresAt > DateTime.Now )
+                .Where( t => t.Token == request.Token && t.ExpiresAt > DateTime.UtcNow.AddHours( 7 ) )
                 .OrderByDescending( t => t.ExpiresAt )
                 .FirstOrDefaultAsync();
 

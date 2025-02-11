@@ -88,8 +88,8 @@ namespace namHub_FastFood.Controller.ADMIN
                 MaxUsageCount = discountCodeDto.MaxUsageCount,
                 IsSingleUse = discountCodeDto.IsSingleUse,
                 IsActive = discountCodeDto.IsActive,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now,
+                CreatedAt = DateTime.UtcNow.AddHours(7),
+                UpdatedAt = DateTime.UtcNow.AddHours(7),
             };
 
             _context.DiscountCodes.Add(discountCode);
@@ -136,7 +136,7 @@ namespace namHub_FastFood.Controller.ADMIN
                 existingDiscountCode.IsSingleUse = discountCodeDto.IsSingleUse;
             }
             existingDiscountCode.IsActive = discountCodeDto.IsActive;
-            existingDiscountCode.UpdatedAt = DateTime.Now;
+            existingDiscountCode.UpdatedAt = DateTime.UtcNow.AddHours(7);
             // Lưu thay đổi vào database
             _context.DiscountCodes.Update(existingDiscountCode);
             await _context.SaveChangesAsync();

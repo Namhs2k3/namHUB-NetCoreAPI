@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+This file is used by the publish/package process of your Web project. You can customize the behavior of this process
+by editing this MSBuild file. In order to learn more about this please visit https://go.microsoft.com/fwlink/?LinkID=208121. 
+-->
+<Project>
+  <PropertyGroup>
+    <TimeStampOfAssociatedLegacyPublishXmlFile />
+    <EncryptedPassword>AQAAANCMnd8BFdERjHoAwE/Cl+sBAAAA4B/Ufl0K/0CbH9CByure/QAAAAACAAAAAAAQZgAAAAEAACAAAAA9fOin2Bd/CsvgZ9xlcTd9XVImRru2GRAYO77zVKjZFwAAAAAOgAAAAAIAACAAAACiri/Uh8uZ8gsQAG/bhdoT6dBcpBuPbFtmHETWj93qeiAAAAATHueJMrQNS6BPtF3agjFWgnbuOZffcGmHTpdGTwRPgEAAAAAsbzjVpGVPg0RWQ4wn8wKWsDhacYRT+i9mBf3QX9ZRJNixZf72uGh2WL+8z2lxmCJS5XkVIod5yyOYBFE6YrnW</EncryptedPassword>
+    <History>True|2025-01-19T06:13:26.2611714Z;True|2025-01-19T12:16:41.7312705+07:00;True|2025-01-19T12:12:16.7463030+07:00;True|2025-01-19T11:32:25.8112756+07:00;True|2025-01-18T01:37:23.9763401+07:00;</History>
+    <LastFailureDetails />
+  </PropertyGroup>
+  <ItemGroup>
+    <DestinationConnectionStrings Include="DefaultConnection">
+      <Value>Data Source=SQL1002.site4now.net%3bInitial Catalog=db_ab1cd8_login%3bUser ID=db_ab1cd8_login_admin%3bPassword=Nampham1%3bTrust Server Certificate=True</Value>
+    </DestinationConnectionStrings>
+  </ItemGroup>
+</Project>

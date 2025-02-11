@@ -188,7 +188,7 @@ namespace namHub_FastFood.Controller.USER
             {
                 return NotFound( "Người dùng ko tồn tại!" );
             }
-            exitingUser.UpdatedAt = DateTime.Now;
+            exitingUser.UpdatedAt = DateTime.UtcNow.AddHours(7);
             exitingUser.FullName = model.FullName;
 
             // Lưu cập nhật người dùng
@@ -200,8 +200,8 @@ namespace namHub_FastFood.Controller.USER
                 FullName = model.FullName,
                 Email = exitingUser.Email,
                 Phone = model.Phone,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now,
+                CreatedAt = DateTime.UtcNow.AddHours(7),
+                UpdatedAt = DateTime.UtcNow.AddHours(7),
                 UserId = userId.Value,
                 UserImage = $"/images/{fileName}",
             };
@@ -281,10 +281,10 @@ namespace namHub_FastFood.Controller.USER
             customer.FullName = model.FullName ?? customer.FullName;
             customer.Phone = model.Phone ?? customer.Phone;
             customer.Email = model.Email ?? customer.Email;
-            customer.UpdatedAt = DateTime.Now;
+            customer.UpdatedAt = DateTime.UtcNow.AddHours(7);
 
             // Cập nhật thông tin cho người dùng
-            exitingUser.UpdatedAt = DateTime.Now;
+            exitingUser.UpdatedAt = DateTime.UtcNow.AddHours(7);
             exitingUser.FullName = model.FullName ?? exitingUser.FullName;
             if ( !string.IsNullOrEmpty( model.Email ) && model.Email.ToLower() != exitingUser.Email.ToLower() )
             {
@@ -408,8 +408,8 @@ namespace namHub_FastFood.Controller.USER
                 IsDefault = userAddress.IsDefault,
                 PostalCode = userAddress.PostalCode,
                 Country = userAddress.Country,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now,
+                CreatedAt = DateTime.UtcNow.AddHours(7),
+                UpdatedAt = DateTime.UtcNow.AddHours(7),
             };
 
             _context.Addresses.Add( newUserAddress );
@@ -458,7 +458,7 @@ namespace namHub_FastFood.Controller.USER
                 return NotFound( "Địa chỉ ko tồn tại!" );
             }
 
-            exitingAddresses.UpdatedAt = DateTime.Now;
+            exitingAddresses.UpdatedAt = DateTime.UtcNow.AddHours(7);
             exitingAddresses.AddressLine1 = userAddress.AddressLine1;
             exitingAddresses.AddressLine2 = userAddress.AddressLine2 ?? "";
             exitingAddresses.City = userAddress.City;

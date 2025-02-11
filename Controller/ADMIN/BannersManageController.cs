@@ -102,8 +102,8 @@ namespace namHub_FastFood.Controller.ADMIN
                 DisplayOrder = banner.DisplayOrder,
                 Link = banner.Link,
                 IsActive = banner.IsActive,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now,
+                CreatedAt = DateTime.UtcNow.AddHours(7),
+                UpdatedAt = DateTime.UtcNow.AddHours(7),
                 StartDate = banner.StartDate,
                 EndDate = banner.EndDate,
             };
@@ -182,7 +182,7 @@ namespace namHub_FastFood.Controller.ADMIN
             existingBanner.DisplayOrder = banner.DisplayOrder;
             existingBanner.Link = banner.Link;
             existingBanner.IsActive = banner.IsActive;
-            existingBanner.UpdatedAt = DateTime.Now;
+            existingBanner.UpdatedAt = DateTime.UtcNow.AddHours(7);
             existingBanner.StartDate = banner.StartDate;
             existingBanner.EndDate = banner.EndDate;
 

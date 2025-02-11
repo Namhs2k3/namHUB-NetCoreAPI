@@ -88,8 +88,8 @@ namespace namHub_FastFood.Controller.ADMIN
                 Email = newEmployee.Email, // email có thể là do công ty cấp hoặc nhân viên đưa mail cho admin để tạo tài khoản
                 Salt = salt,
                 EmailVerified = false,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now,
+                CreatedAt = DateTime.UtcNow.AddHours(7),
+                UpdatedAt = DateTime.UtcNow.AddHours(7),
                 EmailVerificationCode = emailVerificationCode
             };
 
@@ -162,7 +162,7 @@ namespace namHub_FastFood.Controller.ADMIN
                     _context.UserRoles.Add( newUserRole );
                 }
             }
-            user.UpdatedAt = DateTime.Now;
+            user.UpdatedAt = DateTime.UtcNow.AddHours(7);
             // Lưu thay đổi vào cơ sở dữ liệu
             await _context.SaveChangesAsync();
 

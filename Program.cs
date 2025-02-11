@@ -31,7 +31,7 @@ builder.Services.AddCors( options =>
     options.AddPolicy( "AllowSpecificOrigins",
         builder =>
         {
-            builder.WithOrigins( "http://localhost:3000", "http://localhost:5173" ) // Chỉ định origin cụ thể
+            builder.WithOrigins( "http://localhost:3000", "http://localhost:5173", "https://namhub-fastfood.vercel.app" ) // Chỉ định origin cụ thể
                    .AllowAnyMethod()
                    .AllowAnyHeader()
                    .AllowCredentials(); // Cho phép credentials

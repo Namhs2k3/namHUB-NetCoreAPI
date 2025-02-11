@@ -171,7 +171,7 @@ namespace namHub_FastFood.Controller.ADMIN
             {
                 OrderId = orderId,
                 Status = status,
-                StatusDate = DateTime.Now,
+                StatusDate = DateTime.UtcNow.AddHours(7),
                 UpdatedBy = updatedBy,
             };
 

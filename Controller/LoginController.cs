@@ -67,7 +67,7 @@ namespace namHub_FastFood.Controller
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddMinutes(60),
+                expires: DateTime.UtcNow.AddHours(7).AddMinutes(60),
                 signingCredentials: creds);
 
             var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
@@ -76,13 +76,13 @@ namespace namHub_FastFood.Controller
             Response.Cookies.Append("jwt", tokenString, new CookieOptions
             {
                 HttpOnly = true,
-                Expires = DateTime.Now.AddMinutes(60)
+                Expires = DateTime.UtcNow.AddHours(7).AddMinutes(60)
             });
 
             var refreshToken = new RefreshToken
             {
                 Token = GenerateRefreshToken(),
-                Expires = DateTime.Now.AddDays(7), // Refresh token có hiệu lực 7 ngày
+                Expires = DateTime.UtcNow.AddHours(7).AddDays(7), // Refresh token có hiệu lực 7 ngày
                 IsUsed = false,
                 IsRevoked = false,
                 UserId = user.UserId
@@ -106,7 +106,7 @@ namespace namHub_FastFood.Controller
                 .Include(rt => rt.User)
                 .FirstOrDefaultAsync(rt => rt.Token == request.Token);
 
-            if (storedToken == null || storedToken.IsUsed || storedToken.IsRevoked || storedToken.Expires < DateTime.Now)
+            if (storedToken == null || storedToken.IsUsed || storedToken.IsRevoked || storedToken.Expires < DateTime.UtcNow.AddHours(7))
             {
                 return Unauthorized("Refresh Token không hợp lệ hoặc đã hết hạn sử dụng!");
             }
@@ -142,7 +142,7 @@ namespace namHub_FastFood.Controller
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddMinutes(60),
+                expires: DateTime.UtcNow.AddHours(7).AddMinutes(60),
                 signingCredentials: creds);
 
             var tokenString = new JwtSecurityTokenHandler().WriteToken(newToken);
@@ -151,7 +151,7 @@ namespace namHub_FastFood.Controller
             var newRefreshToken = new RefreshToken
             {
                 Token = GenerateRefreshToken(),
-                Expires = DateTime.Now.AddDays(7),
+                Expires = DateTime.UtcNow.AddHours(7).AddDays(7),
                 IsUsed = false,
                 IsRevoked = false,
                 UserId = storedToken.UserId
@@ -200,7 +200,7 @@ namespace namHub_FastFood.Controller
             {
                 // Xóa các refresh token đã hết hạn hoặc đã sử dụng cho user hiện tại
                 await _context.RefreshTokens
-                    .Where(rf => rf.UserId == userId && (rf.Expires < DateTime.Now || rf.IsUsed == true))
+                    .Where(rf => rf.UserId == userId && (rf.Expires < DateTime.UtcNow.AddHours(7) || rf.IsUsed == true))
                     .ExecuteDeleteAsync(); // Nếu dùng EF Core 7.0 trở lên
 
                 return Ok("Đã Dọn Dẹp Refresh Token!");

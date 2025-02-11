@@ -36,7 +36,7 @@ public class VnPayService
         vnpay.AddRequestData("vnp_Command", "pay");
         vnpay.AddRequestData("vnp_TmnCode", vnp_TmnCode);
         vnpay.AddRequestData("vnp_Amount", ((int)(amount * 100)).ToString()); // Số tiền cần thanh toán
-        vnpay.AddRequestData("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
+        vnpay.AddRequestData("vnp_CreateDate", DateTime.UtcNow.AddHours(7).ToString("yyyyMMddHHmmss"));
         vnpay.AddRequestData("vnp_CurrCode", "VND");
         vnpay.AddRequestData("vnp_IpAddr", ipAddress);
         vnpay.AddRequestData("vnp_Locale", locale);
@@ -51,7 +51,7 @@ public class VnPayService
         }
 
         // Thời gian hết hạn thanh toán
-        vnpay.AddRequestData("vnp_ExpireDate", DateTime.Now.AddMinutes(15).ToString("yyyyMMddHHmmss"));
+        vnpay.AddRequestData("vnp_ExpireDate", DateTime.UtcNow.AddHours(7).AddMinutes(15).ToString("yyyyMMddHHmmss"));
 
         // Tạo URL thanh toán
         string paymentUrl = vnpay.CreateRequestUrl(vnp_Url, vnp_HashSecret);

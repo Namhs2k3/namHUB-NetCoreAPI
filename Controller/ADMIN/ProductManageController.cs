@@ -197,7 +197,7 @@ namespace namHub_FastFood.Controller.ADMIN
             existingProduct.Price = product.Price;
             existingProduct.StockQuantity = product.StockQuantity;
             existingProduct.CategoryId = product.CategoryId;
-            existingProduct.UpdatedAt = DateTime.Now;
+            existingProduct.UpdatedAt = DateTime.UtcNow.AddHours(7);
             existingProduct.IsPopular = product.IsPopular;
             existingProduct.IsHidden = product.IsHidden;
             existingProduct.Keywords = product.keywords;

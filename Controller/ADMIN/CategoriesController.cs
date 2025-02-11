@@ -168,7 +168,7 @@ namespace namHub_FastFood.Controller.ADMIN
             // Cập nhật thuộc tính của danh mục
             category.CategoryName = myCategory.CategoryName;
             category.Description = myCategory.CategoryDescription;
-            category.UpdatedAt = DateTime.Now; // Cập nhật thời gian sửa đổi
+            category.UpdatedAt = DateTime.UtcNow.AddHours(7); // Cập nhật thời gian sửa đổi
             category.Keywords = myCategory.keywords;
 
             // Lưu thay đổi vào cơ sở dữ liệu
